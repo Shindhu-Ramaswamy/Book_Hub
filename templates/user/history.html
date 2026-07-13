@@ -2,6 +2,9 @@
 {% block page_title %}History{% endblock %}
 {% block content %}
 <div class="table-wrap">
+  <div class="table-head" style="justify-content:flex-end;">
+    <small style="color:var(--text3)">{{ pagination.total }} record(s)</small>
+  </div>
   <div class="table-responsive">
     <table>
       <thead><tr><th>#</th><th>Book</th><th>Requested</th><th>Borrowed</th><th>Due</th><th>Returned</th><th>Fine (₹)</th><th>Status</th></tr></thead>
@@ -31,5 +34,22 @@
       </tbody>
     </table>
   </div>
+  {% if pagination.total > 0 %}
+  <div class="table-pagination">
+    <small>{{ (pagination.page - 1) * pagination.per_page + 1 }}–{{ ((pagination.page - 1) * pagination.per_page) + records|length }} of {{ pagination.total }}</small>
+    <div class="table-pagination-nav">
+      {% if pagination.has_prev %}
+        <a href="{{ url_for('user.history', page=pagination.prev_num) }}" class="pg-arrow" aria-label="Previous page"><i class="ti ti-chevron-left"></i></a>
+      {% else %}
+        <span class="pg-arrow pg-arrow-disabled" aria-disabled="true"><i class="ti ti-chevron-left"></i></span>
+      {% endif %}
+      {% if pagination.has_next %}
+        <a href="{{ url_for('user.history', page=pagination.next_num) }}" class="pg-arrow" aria-label="Next page"><i class="ti ti-chevron-right"></i></a>
+      {% else %}
+        <span class="pg-arrow pg-arrow-disabled" aria-disabled="true"><i class="ti ti-chevron-right"></i></span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

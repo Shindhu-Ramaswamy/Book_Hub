@@ -30,8 +30,7 @@ Notification types
   membership_payment_received — librarian alert: a membership fee was paid online
   delivery_requested    — user submitted a home-delivery order
   delivery_accepted     — librarian accepted the order
-  delivery_packed       — order packed
-  delivery_shipped      — order handed to a delivery agent
+  delivery_packed       — order packed and agent assigned
   delivery_out_for_delivery — agent is en route
   delivery_delivered    — order delivered
   delivery_rejected     — librarian declined the order
@@ -82,7 +81,6 @@ NOTIFICATION_META = {
     'delivery_requested':      ('ti-truck-delivery',     'blue'),
     'delivery_accepted':       ('ti-circle-check',       'green'),
     'delivery_packed':         ('ti-package',            'blue'),
-    'delivery_shipped':        ('ti-truck',              'blue'),
     'delivery_out_for_delivery': ('ti-map-pin',          'amber'),
     'delivery_delivered':      ('ti-package-import',     'green'),
     'delivery_rejected':       ('ti-circle-x',           'red'),

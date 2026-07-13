@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>BookHub — {{ title }}</title>
+  <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='img/bookhub-icon.jpg') }}">
   <script>(function(){try{if(localStorage.getItem('lms_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 </head>
@@ -38,20 +39,41 @@
 
   <nav class="sidebar" id="sidebar">
     <button type="button" class="sidebar-toggle-icon" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i class="ti ti-layout-sidebar-left-collapse"></i></button>
-    <a href="{{ url_for('librarian.home') }}"        class="nav-item {% if request.endpoint=='librarian.home' %}active-lib{% endif %}" aria-label="Home"><i class="ti ti-home"></i><span class="nav-label">Home</span></a>
+    <a href="{{ url_for('librarian.home') }}"        class="nav-item {% if request.endpoint=='librarian.home' %}active-lib{% endif %}" aria-label="Dashboard"><i class="ti ti-home"></i><span class="nav-label">Dashboard</span></a>
     <a href="{{ url_for('librarian.book_list') }}"   class="nav-item {% if request.endpoint in ('librarian.book_list','librarian.add_book','librarian.edit_book') %}active-lib{% endif %}" aria-label="Books"><i class="ti ti-books"></i><span class="nav-label">Book List</span></a>
     <a href="{{ url_for('librarian.search_ol') }}"   class="nav-item {% if request.endpoint in ('librarian.search_ol','librarian.import_ol') %}active-lib{% endif %}" aria-label="Import books"><i class="ti ti-cloud-download"></i><span class="nav-label">Import From OL</span></a>
     <a href="{{ url_for('librarian.requests') }}"    class="nav-item {% if request.endpoint=='librarian.requests' %}active-lib{% endif %}" aria-label="Requests"><i class="ti ti-clipboard-list"></i><span class="nav-label">Requests</span></a>
     <a href="{{ url_for('librarian.reservations') }}" class="nav-item {% if request.endpoint in ('librarian.reservations','librarian.fulfil_reservation') %}active-lib{% endif %}" aria-label="Reservations"><i class="ti ti-clock"></i><span class="nav-label">Reservations</span></a>
-    <a href="{{ url_for('librarian.deliveries') }}" class="nav-item {% if request.endpoint in ('librarian.deliveries','librarian.delivery_detail','librarian.accept_delivery','librarian.reject_delivery','librarian.cancel_delivery','librarian.assign_delivery_agent','librarian.pack_delivery','librarian.ship_delivery','librarian.out_for_delivery','librarian.deliver_delivery','librarian.mark_delivery_fee_paid','librarian.create_delivery_payment_order_lib','librarian.verify_delivery_payment_lib') %}active-lib{% endif %}" aria-label="Deliveries"><i class="ti ti-truck-delivery"></i><span class="nav-label">Deliveries</span></a>
-    <a href="{{ url_for('librarian.delivery_agents') }}" class="nav-item {% if request.endpoint in ('librarian.delivery_agents','librarian.add_delivery_agent','librarian.edit_delivery_agent','librarian.toggle_delivery_agent') %}active-lib{% endif %}" aria-label="Delivery agents"><i class="ti ti-user-check"></i><span class="nav-label">Delivery Agents</span></a>
-    <a href="{{ url_for('librarian.pickups') }}" class="nav-item {% if request.endpoint in ('librarian.pickups','librarian.pickup_detail','librarian.accept_pickup','librarian.reject_pickup','librarian.cancel_pickup','librarian.assign_pickup_agent','librarian.out_for_pickup','librarian.picked_up','librarian.mark_pickup_fee_paid','librarian.create_pickup_payment_order_lib','librarian.verify_pickup_payment_lib') %}active-lib{% endif %}" aria-label="Return Pickups"><i class="ti ti-package-export"></i><span class="nav-label">Return Pickups</span></a>
+
+    {% set delivery_endpoints = ('librarian.deliveries','librarian.delivery_detail','librarian.accept_delivery','librarian.reject_delivery','librarian.cancel_delivery','librarian.assign_delivery_agent','librarian.pack_delivery','librarian.out_for_delivery','librarian.deliver_delivery','librarian.mark_delivery_fee_paid','librarian.delivery_agents','librarian.add_delivery_agent','librarian.edit_delivery_agent','librarian.toggle_delivery_agent','librarian.pickups','librarian.pickup_detail','librarian.accept_pickup','librarian.reject_pickup','librarian.cancel_pickup','librarian.assign_pickup_agent','librarian.out_for_pickup','librarian.picked_up','librarian.mark_pickup_fee_paid','librarian.create_pickup_payment_order_lib','librarian.verify_pickup_payment_lib') %}
+    <div class="nav-group {% if request.endpoint in delivery_endpoints %}open{% endif %}">
+      <button type="button" class="nav-item nav-group-header {% if request.endpoint in delivery_endpoints %}active-lib{% endif %}" onclick="toggleNavGroup(event, this)" aria-label="Delivery" aria-expanded="{{ 'true' if request.endpoint in delivery_endpoints else 'false' }}">
+        <span class="nav-group-header-left"><i class="ti ti-truck-delivery"></i><span class="nav-label">Delivery</span></span>
+        <i class="ti ti-chevron-down nav-group-chevron"></i>
+      </button>
+      <div class="nav-submenu">
+        <a href="{{ url_for('librarian.deliveries') }}" class="nav-item nav-subitem {% if request.endpoint in ('librarian.deliveries','librarian.delivery_detail','librarian.accept_delivery','librarian.reject_delivery','librarian.cancel_delivery','librarian.assign_delivery_agent','librarian.pack_delivery','librarian.out_for_delivery','librarian.deliver_delivery','librarian.mark_delivery_fee_paid') %}active-lib{% endif %}" aria-label="Deliveries"><i class="ti ti-truck"></i><span class="nav-label">Deliveries</span></a>
+        <a href="{{ url_for('librarian.pickups') }}" class="nav-item nav-subitem {% if request.endpoint in ('librarian.pickups','librarian.pickup_detail','librarian.accept_pickup','librarian.reject_pickup','librarian.cancel_pickup','librarian.assign_pickup_agent','librarian.out_for_pickup','librarian.picked_up','librarian.mark_pickup_fee_paid','librarian.create_pickup_payment_order_lib','librarian.verify_pickup_payment_lib') %}active-lib{% endif %}" aria-label="Return Pickups"><i class="ti ti-package-export"></i><span class="nav-label">Return Pickups</span></a>
+        <a href="{{ url_for('librarian.delivery_agents') }}" class="nav-item nav-subitem {% if request.endpoint in ('librarian.delivery_agents','librarian.add_delivery_agent','librarian.edit_delivery_agent','librarian.toggle_delivery_agent') %}active-lib{% endif %}" aria-label="Delivery agents"><i class="ti ti-user-check"></i><span class="nav-label">Delivery Agents</span></a>
+      </div>
+    </div>
+
     <a href="{{ url_for('librarian.issued_books') }}" class="nav-item {% if request.endpoint=='librarian.issued_books' %}active-lib{% endif %}" aria-label="Transactions"><i class="ti ti-arrows-exchange"></i><span class="nav-label">Transactions</span></a>
-    <a href="{{ url_for('librarian.overdue') }}"     class="nav-item {% if request.endpoint=='librarian.overdue' %}active-lib{% endif %}" aria-label="Fines"><i class="ti ti-alert-triangle"></i><span class="nav-label">Overdue &amp; Fines</span></a>
-    <a href="{{ url_for('librarian.membership_payments') }}" class="nav-item {% if request.endpoint in ('librarian.membership_payments','librarian.mark_membership_paid') %}active-lib{% endif %}" aria-label="Membership payments"><i class="ti ti-id-badge-2"></i><span class="nav-label">Membership Payments</span></a>
+
+    {% set payments_endpoints = ('librarian.overdue','librarian.membership_payments','librarian.mark_membership_paid') %}
+    <div class="nav-group {% if request.endpoint in payments_endpoints %}open{% endif %}">
+      <button type="button" class="nav-item nav-group-header {% if request.endpoint in payments_endpoints %}active-lib{% endif %}" onclick="toggleNavGroup(event, this)" aria-label="Payments" aria-expanded="{{ 'true' if request.endpoint in payments_endpoints else 'false' }}">
+        <span class="nav-group-header-left"><i class="ti ti-cash"></i><span class="nav-label">Payments</span></span>
+        <i class="ti ti-chevron-down nav-group-chevron"></i>
+      </button>
+      <div class="nav-submenu">
+        <a href="{{ url_for('librarian.overdue') }}" class="nav-item nav-subitem {% if request.endpoint=='librarian.overdue' %}active-lib{% endif %}" aria-label="Fines"><i class="ti ti-alert-triangle"></i><span class="nav-label">Overdue &amp; Fines</span></a>
+        <a href="{{ url_for('librarian.membership_payments') }}" class="nav-item nav-subitem {% if request.endpoint in ('librarian.membership_payments','librarian.mark_membership_paid') %}active-lib{% endif %}" aria-label="Membership payments"><i class="ti ti-id-badge-2"></i><span class="nav-label">Membership Payments</span></a>
+      </div>
+    </div>
+
     <a href="{{ url_for('librarian.users_list') }}"  class="nav-item {% if request.endpoint=='librarian.users_list' %}active-lib{% endif %}" aria-label="Users"><i class="ti ti-users"></i><span class="nav-label">Users List</span></a>
     <a href="{{ url_for('librarian.history') }}"     class="nav-item {% if request.endpoint=='librarian.history' %}active-lib{% endif %}" aria-label="History"><i class="ti ti-history"></i><span class="nav-label">History</span></a>
-    <a href="{{ url_for('librarian.damaged') }}"     class="nav-item {% if request.endpoint in ('librarian.damaged','librarian.add_damaged','librarian.add_damaged_for') %}active-lib{% endif %}" aria-label="Damaged &amp; lost"><i class="ti ti-tool"></i><span class="nav-label">Damaged &amp; Lost</span></a>
     <div class="nav-spacer"></div>
 
     <div class="sidebar-profile" id="profile-menu-wrap">

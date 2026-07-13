@@ -51,6 +51,15 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 function toggleSidebar() { const sb = document.getElementById('sidebar'); if (sb) sb.classList.toggle('open'); }
 
+/* ── Sidebar folder-style nav groups (Delivery, Payments, etc.) ── */
+function toggleNavGroup(e, btn) {
+  if (e) e.preventDefault();
+  const group = btn.closest('.nav-group');
+  if (!group) return;
+  const open = group.classList.toggle('open');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
 /* ── Sidebar collapse/expand (desktop) ── */
 function toggleSidebarCollapse() {
   const collapsed = document.body.classList.toggle('sidebar-collapsed');

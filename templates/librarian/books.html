@@ -38,7 +38,7 @@
 <div class="table-wrap">
   <div class="table-head">
     <span class="table-head-title">All Books</span>
-    <small style="color:var(--text3)">{{ books|length }} book(s)</small>
+    <small style="color:var(--text3)">{{ pagination.total }} book(s)</small>
     <a href="{{ url_for('librarian.search_ol') }}" class="btn btn-sm btn-info" style="margin-left:10px;"><i class="ti ti-cloud-download"></i> Import from Open Library</a>
     <button type="button" onclick="openFormModal('{{ url_for('librarian.add_book') }}')" class="btn btn-sm btn-librarian" style="margin-left:6px;"><i class="ti ti-plus"></i> Add manually</button>
   </div>
@@ -61,7 +61,7 @@
           <td>{{ book.total_quantity }}</td>
           <td>{% if book.available_quantity > 0 %}<span class="badge badge-success">{{ book.available_quantity }}</span>{% else %}<span class="badge badge-danger">0</span>{% endif %}</td>
           <td>{% if book.available_quantity > 0 %}<span class="badge badge-success">Available</span>{% else %}<span class="badge badge-danger">Unavailable</span>{% endif %}</td>
-          <td style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <td style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;white-space:nowrap;">
             <button type="button" class="btn btn-sm" onclick="openFormModal('{{ url_for('librarian.edit_book', book_id=book.id) }}')"><i class="ti ti-edit"></i></button>
             <button type="button" class="btn btn-sm btn-warning" title="Log damage" onclick="openFormModal('{{ url_for('librarian.add_damaged_for', book_id=book.id) }}')"><i class="ti ti-tool"></i></button>
             <form method="POST" action="{{ url_for('librarian.delete_book', book_id=book.id) }}" onsubmit="confirmDeleteForm(event, this, '&quot;{{ book.title }}&quot;')">
@@ -76,5 +76,22 @@
       </tbody>
     </table>
   </div>
+  {% if pagination.total > 0 %}
+  <div class="table-pagination">
+    <small>{{ (pagination.page - 1) * pagination.per_page + 1 }}–{{ ((pagination.page - 1) * pagination.per_page) + books|length }} of {{ pagination.total }}</small>
+    <div class="table-pagination-nav">
+      {% if pagination.has_prev %}
+        <a href="{{ url_for('librarian.book_list', page=pagination.prev_num, q=search_q or None, genre=selected_genres, sort=sort, availability=availability if availability != 'all' else None) }}" class="pg-arrow" aria-label="Previous page"><i class="ti ti-chevron-left"></i></a>
+      {% else %}
+        <span class="pg-arrow pg-arrow-disabled" aria-disabled="true"><i class="ti ti-chevron-left"></i></span>
+      {% endif %}
+      {% if pagination.has_next %}
+        <a href="{{ url_for('librarian.book_list', page=pagination.next_num, q=search_q or None, genre=selected_genres, sort=sort, availability=availability if availability != 'all' else None) }}" class="pg-arrow" aria-label="Next page"><i class="ti ti-chevron-right"></i></a>
+      {% else %}
+        <span class="pg-arrow pg-arrow-disabled" aria-disabled="true"><i class="ti ti-chevron-right"></i></span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

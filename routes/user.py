@@ -169,9 +169,12 @@ def my_books():
 @login_required
 @user_required
 def history():
-    records = BorrowRecord.query.filter_by(user_id=current_user.id)\
-                .order_by(BorrowRecord.request_date.desc()).all()
-    return render_template('user/history.html', title='History', records=records)
+    page = request.args.get('page', 1, type=int)
+    pagination = BorrowRecord.query.filter_by(user_id=current_user.id)\
+                .order_by(BorrowRecord.request_date.desc(), BorrowRecord.id.desc())\
+                .paginate(page=page, per_page=25, error_out=False)
+    return render_template('user/history.html', title='History',
+                           records=pagination.items, pagination=pagination)
 
 
 @user.route('/search')
@@ -427,6 +430,7 @@ def membership():
         pending=pending, history=history,
         upgrade_rules=Config.MEMBERSHIP_RULES['membership'],
         razorpay_key_id=current_app.config.get('RAZORPAY_KEY_ID'),
+        autopay=request.args.get('autopay') == '1',
     )
 
 
@@ -519,6 +523,10 @@ def verify_membership_payment(payment_id):
 @user_required
 def delivery_address_form():
     from services.delivery_service import DeliveryService
+
+    if current_user.membership_type != 'membership':
+        flash('Home delivery is a Membership perk — upgrade your membership to use it.', 'danger')
+        return redirect(url_for('user.membership'))
 
     items = BookService.cart_items(current_user.id)
     if request.method == 'POST':
@@ -680,6 +688,10 @@ def request_return(record_id):
 @user_required
 def pickup_request_form(record_id):
     from services.pickup_service import PickupService
+
+    if current_user.membership_type != 'membership':
+        flash('Return pickup is a Membership perk — upgrade your membership to use it.', 'danger')
+        return redirect(url_for('user.membership'))
 
     record = BorrowRecord.query.filter_by(id=record_id, user_id=current_user.id).first_or_404()
     if request.method == 'POST':

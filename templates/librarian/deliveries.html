@@ -7,7 +7,6 @@
   <a href="{{ url_for('librarian.deliveries', status='requested') }}"        class="filter-chip {% if active_status=='requested' %}fc-active{% endif %}">Requested</a>
   <a href="{{ url_for('librarian.deliveries', status='accepted') }}"         class="filter-chip {% if active_status=='accepted' %}fc-active{% endif %}">Accepted</a>
   <a href="{{ url_for('librarian.deliveries', status='packed') }}"           class="filter-chip {% if active_status=='packed' %}fc-active{% endif %}">Packed</a>
-  <a href="{{ url_for('librarian.deliveries', status='shipped') }}"          class="filter-chip {% if active_status=='shipped' %}fc-active{% endif %}">Shipped</a>
   <a href="{{ url_for('librarian.deliveries', status='out_for_delivery') }}" class="filter-chip {% if active_status=='out_for_delivery' %}fc-active{% endif %}">Out for delivery</a>
   <a href="{{ url_for('librarian.deliveries', status='delivered') }}"        class="filter-chip {% if active_status=='delivered' %}fc-active{% endif %}">Delivered</a>
   <a href="{{ url_for('librarian.deliveries', status='rejected') }}"         class="filter-chip {% if active_status=='rejected' %}fc-active{% endif %}">Rejected</a>

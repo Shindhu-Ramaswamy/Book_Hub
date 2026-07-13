@@ -1,6 +1,18 @@
 {% extends 'base_librarian.html' %}
 {% block page_title %}Users List{% endblock %}
 {% block content %}
+
+<form method="GET" action="{{ url_for('librarian.users_list') }}" style="max-width:560px;margin:0 auto 18px;">
+  <div style="display:flex;gap:10px;">
+    <div class="search-box" style="width:100%;border-radius:var(--radius);">
+      <i class="ti ti-search"></i>
+      <input type="text" name="q" placeholder="Search by name, email, or phone…" value="{{ search_q or '' }}">
+    </div>
+    <button type="submit" class="btn btn-librarian" style="background:var(--purple);color:#fff;">Search</button>
+    {% if search_q %}<a href="{{ url_for('librarian.users_list') }}" class="btn btn-sm">Clear</a>{% endif %}
+  </div>
+</form>
+
 <div class="table-wrap">
   <div class="table-head">
     <span class="table-head-title">All Members</span>
@@ -24,7 +36,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="6" class="empty-td">No members registered yet.</td></tr>
+        <tr><td colspan="6" class="empty-td">{% if search_q %}No members match "{{ search_q }}".{% else %}No members registered yet.{% endif %}</td></tr>
         {% endfor %}
       </tbody>
     </table>

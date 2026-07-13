@@ -27,15 +27,29 @@ def login_user_page():
 @auth.route('/register/user', methods=['GET', 'POST'])
 def register_user_page():
     if request.method == 'POST':
+        membership_type = request.form.get('membership_type', 'basic')
         user, err = AuthService.register_user(
             name=request.form['name'], email=request.form['email'],
             phone=request.form['phone'],
             password=request.form['password'], role='user',
-            membership_type=request.form.get('membership_type', 'basic'),
+            membership_type=membership_type,
         )
         if err:
             flash(err, 'danger')
             return redirect(url_for('auth.register_user_page'))
+
+        if membership_type == 'membership':
+            # Skip the "please sign in" round-trip — log them straight in
+            # and take them to the payment step for the upgrade fee that
+            # register_user() just raised. If they close the tab or the
+            # payment fails, nothing here ever set membership_type to
+            # 'membership' (that only happens on a verified payment), so
+            # the account simply stays on the free Basic tier they were
+            # already granted.
+            login_user(user)
+            flash('Account created — pay the membership fee to activate your upgrade.', 'success')
+            return redirect(url_for('user.membership', autopay=1))
+
         flash('Account created! Please sign in.', 'success')
         return redirect(url_for('auth.login_user_page'))
     return render_template('auth/register_user.html',

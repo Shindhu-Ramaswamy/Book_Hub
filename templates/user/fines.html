@@ -85,7 +85,7 @@
 
     fetch('/user/fines/' + overdueId + '/pay/create-order', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -131,7 +131,7 @@
   function verifyPayment(overdueId, response, btn) {
     fetch('/user/fines/' + overdueId + '/pay/verify', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({
         razorpay_order_id:   response.razorpay_order_id,
         razorpay_payment_id: response.razorpay_payment_id,

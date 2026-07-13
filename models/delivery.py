@@ -20,8 +20,7 @@ Lifecycle
 ---------
   requested         → user submitted cart for delivery, awaiting librarian
   accepted           → librarian accepted; books leave the shelf now
-  packed             → librarian packed the parcel
-  shipped            → handed to the assigned delivery agent
+  packed             → librarian packed the parcel and assigned an agent
   out_for_delivery   → agent is en route
   delivered          → agent handed it over; BorrowRecords become 'borrowed'
   rejected           → librarian declined (only reachable from 'requested')
@@ -34,7 +33,7 @@ from extensions import db
 from datetime import date
 
 DELIVERY_STATUSES = [
-    'requested', 'accepted', 'packed', 'shipped',
+    'requested', 'accepted', 'packed',
     'out_for_delivery', 'delivered', 'rejected', 'cancelled',
 ]
 
@@ -43,7 +42,6 @@ DELIVERY_PIPELINE = [
     ('requested',         'Requested'),
     ('accepted',          'Accepted'),
     ('packed',            'Packed'),
-    ('shipped',           'Shipped'),
     ('out_for_delivery',  'Out for Delivery'),
     ('delivered',         'Delivered'),
 ]
@@ -150,7 +148,6 @@ class DeliveryOrder(db.Model):
             'requested_date':    str(self.requested_date)    if self.requested_date    else None,
             'accepted_date':     str(self.accepted_date)     if self.accepted_date     else None,
             'packed_date':       str(self.packed_date)       if self.packed_date       else None,
-            'shipped_date':      str(self.shipped_date)      if self.shipped_date      else None,
             'out_for_delivery_date': str(self.out_for_delivery_date) if self.out_for_delivery_date else None,
             'delivered_date':    str(self.delivered_date)    if self.delivered_date    else None,
             'rejected_date':     str(self.rejected_date)     if self.rejected_date     else None,

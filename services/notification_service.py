@@ -442,25 +442,12 @@ class NotificationService:
 
     @staticmethod
     def delivery_packed(order):
-        """Librarian packed the parcel."""
+        """Librarian packed the parcel and assigned a delivery agent."""
         _push(
             user_id    = order.user_id,
             notif_type = 'delivery_packed',
             title      = 'Your order has been packed',
-            body       = f'Your parcel of {order.book_count} book(s) has been packed and will ship soon.',
-            delivery_order_id = order.id,
-        )
-
-    @staticmethod
-    def delivery_shipped(order):
-        """Parcel handed to the assigned delivery agent."""
-        agent_info = (f' It has been handed to {order.agent.name} ({order.agent.phone}).'
-                      if order.agent else '')
-        _push(
-            user_id    = order.user_id,
-            notif_type = 'delivery_shipped',
-            title      = 'Your order has shipped!',
-            body       = f'Your parcel is on its way.{agent_info}',
+            body       = f'Your parcel of {order.book_count} book(s) has been packed and will be out for delivery soon.',
             delivery_order_id = order.id,
         )
 

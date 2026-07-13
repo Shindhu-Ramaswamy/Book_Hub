@@ -44,9 +44,15 @@
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <button type="submit" class="btn btn-user"><i class="ti ti-send"></i> Request pickup at library</button>
 </form>
+{% if current_user.membership_type == 'membership' %}
 <a href="{{ url_for('user.delivery_address_form') }}" class="btn" style="margin-left:8px;background:var(--blue-dim);color:var(--blue);">
   <i class="ti ti-truck-delivery"></i> Deliver to my address
 </a>
+{% else %}
+<a href="{{ url_for('user.membership') }}" class="btn" style="margin-left:8px;" title="Home delivery is a Membership perk">
+  <i class="ti ti-lock"></i> Deliver to my address <small style="opacity:0.7;">(Membership only)</small>
+</a>
+{% endif %}
 <a href="{{ url_for('user.book_list') }}" class="btn" style="margin-left:8px;"><i class="ti ti-plus"></i> Add more</a>
 {% else %}
 <div class="empty-state">

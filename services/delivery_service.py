@@ -6,7 +6,7 @@ All home-delivery business logic lives here. Routes call these methods
 
 Lifecycle (see models/delivery.py for the full picture)
 ---------------------------------------------------------
-  requested → accepted → packed → shipped → out_for_delivery → delivered
+  requested → accepted → packed → out_for_delivery → delivered
   requested → rejected             (librarian declines)
   requested/accepted → cancelled   (user or librarian cancels)
 
@@ -56,6 +56,8 @@ class DeliveryService:
         user = User.query.get_or_404(user_id)
         if not user.membership_active:
             return None, 'Please clear your membership payment before requesting delivery.'
+        if user.membership_type != 'membership':
+            return None, 'Home delivery is a Membership perk — upgrade your membership to use it.'
         items = Cart.query.filter_by(user_id=user_id).all()
         if not items:
             return None, 'Cart is empty.'
@@ -193,25 +195,12 @@ class DeliveryService:
         return order, None
 
     @staticmethod
-    def mark_shipped(order_id):
-        order = DeliveryOrder.query.get_or_404(order_id)
-        if order.status != 'packed':
-            return None, 'Order must be packed before it can be shipped.'
-        if not order.agent_id:
-            return None, 'Assign a delivery agent before marking as shipped.'
-        order.status      = 'shipped'
-        order.shipped_date = date.today()
-        db.session.commit()
-
-        from services.notification_service import NotificationService
-        NotificationService.delivery_shipped(order)
-        return order, None
-
-    @staticmethod
     def mark_out_for_delivery(order_id):
         order = DeliveryOrder.query.get_or_404(order_id)
-        if order.status != 'shipped':
-            return None, 'Order must be shipped before it can be out for delivery.'
+        if order.status != 'packed':
+            return None, 'Order must be packed before it can go out for delivery.'
+        if not order.agent_id:
+            return None, 'Assign a delivery agent before marking as out for delivery.'
         if order.fee_status != 'paid':
             return None, 'Delivery fee must be paid before this order can go out for delivery.'
         order.status = 'out_for_delivery'
@@ -337,7 +326,7 @@ class DeliveryService:
     def orders_by_status(status):
         if status == 'all':
             return DeliveryOrder.query.order_by(DeliveryOrder.requested_date.desc()).all()
-        if status not in ('requested', 'accepted', 'packed', 'shipped',
+        if status not in ('requested', 'accepted', 'packed',
                           'out_for_delivery', 'delivered', 'rejected', 'cancelled'):
             status = 'requested'
         return (DeliveryOrder.query.filter_by(status=status)
@@ -350,7 +339,6 @@ class DeliveryService:
             'requested':        order.requested_date,
             'accepted':         order.accepted_date,
             'packed':           order.packed_date,
-            'shipped':          order.shipped_date,
             'out_for_delivery': order.out_for_delivery_date,
             'delivered':        order.delivered_date,
         }

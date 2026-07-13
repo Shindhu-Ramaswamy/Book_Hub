@@ -39,7 +39,7 @@ class BookService:
 
     # ── Catalog ──────────────────────────────────────────────────────
     @staticmethod
-    def get_all(genres=None, query=None, sort=None, availability=None):
+    def _catalog_query(genres=None, query=None, sort=None, availability=None):
         q = Book.query.filter_by(is_deleted=False)
         if genres:
             q = q.filter(Book.genre.in_(genres))
@@ -55,8 +55,17 @@ class BookService:
             q = q.filter((Book.total_quantity - Book.issued_count) > 0)
         elif availability == 'unavailable':
             q = q.filter((Book.total_quantity - Book.issued_count) <= 0)
-        q = q.order_by(Book.title.desc() if sort == 'title_desc' else Book.title.asc())
-        return q.all()
+        return q.order_by(Book.title.desc() if sort == 'title_desc' else Book.title.asc())
+
+    @staticmethod
+    def get_all(genres=None, query=None, sort=None, availability=None):
+        return BookService._catalog_query(genres, query, sort, availability).all()
+
+    @staticmethod
+    def get_all_paginated(genres=None, query=None, sort=None, availability=None,
+                          page=1, per_page=25):
+        return BookService._catalog_query(genres, query, sort, availability) \
+            .paginate(page=page, per_page=per_page, error_out=False)
 
     @staticmethod
     def get_or_404(book_id):

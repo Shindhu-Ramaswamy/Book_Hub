@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>BookHub — {{ title }}</title>
+  <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='img/bookhub-icon.jpg') }}">
   <script>(function(){try{if(localStorage.getItem('lms_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 </head>
@@ -46,7 +47,7 @@
 
   <nav class="sidebar" id="sidebar">
     <button type="button" class="sidebar-toggle-icon" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i class="ti ti-layout-sidebar-left-collapse"></i></button>
-    <a href="{{ url_for('user.home') }}"      class="nav-item {% if request.endpoint=='user.home' %}active{% endif %}" aria-label="Home"><i class="ti ti-home"></i><span class="nav-label">Home</span></a>
+    <a href="{{ url_for('user.home') }}"      class="nav-item {% if request.endpoint=='user.home' %}active{% endif %}" aria-label="Dashboard"><i class="ti ti-home"></i><span class="nav-label">Dashboard</span></a>
     <a href="{{ url_for('user.book_list') }}" class="nav-item {% if request.endpoint=='user.book_list' %}active{% endif %}" aria-label="Browse"><i class="ti ti-books"></i><span class="nav-label">Browse Books</span></a>
     <a href="{{ url_for('user.my_books') }}"  class="nav-item {% if request.endpoint=='user.my_books' %}active{% endif %}" aria-label="Books"><i class="ti ti-bookmark"></i><span class="nav-label">Books</span></a>
     <a href="{{ url_for('user.reservations') }}" class="nav-item {% if request.endpoint in ('user.reservations','user.reserve_book','user.cancel_reservation') %}active{% endif %}" aria-label="Reservations"><i class="ti ti-clock"></i><span class="nav-label">Reservations</span></a>

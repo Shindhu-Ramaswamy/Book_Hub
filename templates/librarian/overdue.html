@@ -15,7 +15,7 @@
     <small style="color:var(--text3)">{{ records|length }} record(s)</small>
   </div>
   <div class="table-responsive">
-    <table>
+    <table class="table-fixed">
       <thead><tr><th>Fine ID</th><th>Member</th><th>Book</th><th>Type</th><th>Amount (₹)</th><th>Raised on</th><th>Paid on</th><th>Collected by</th><th>Method</th><th>Status</th><th>Action</th></tr></thead>
       <tbody>
         {% for r in records %}

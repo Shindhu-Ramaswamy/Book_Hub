@@ -267,7 +267,31 @@ body.sidebar-collapsed .icon-count-badge { display: none; }
 }
 .nav-spacer { flex: 1; }
 
-.main-area { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: calc(100vh - var(--topbar-h)); transition: margin-left 0.2s ease; }
+/* ── Sidebar nav groups (folder-style dropdowns) ── */
+.nav-group-header {
+  width: 100%; background: none; border: none; font: inherit; text-align: left;
+  justify-content: space-between;
+}
+.nav-group-header-left { display: flex; align-items: center; gap: 12px; overflow: hidden; }
+.nav-group-chevron { font-size: 16px; flex-shrink: 0; transition: transform 0.15s ease; }
+.nav-group.open > .nav-group-header .nav-group-chevron { transform: rotate(180deg); }
+.nav-submenu {
+  max-height: 0; overflow: hidden;
+  display: flex; flex-direction: column; gap: 2px;
+  transition: max-height 0.2s ease;
+}
+.nav-group.open > .nav-submenu { max-height: 300px; }
+.nav-subitem { height: 38px; padding-left: 40px; font-size: 0.95rem; }
+body.sidebar-collapsed .nav-group-chevron { display: none; }
+
+.main-area {
+  margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column;
+  min-height: calc(100vh - var(--topbar-h)); transition: margin-left 0.2s ease;
+  background-image: url('../img/bookhub-bg.jpg');
+  background-size: cover; background-position: center top;
+  background-repeat: no-repeat;
+}
+:root[data-theme="dark"] .main-area { background-image: none; }
 
 .topbar {
   height: var(--topbar-h); background: var(--bg-topbar);
@@ -281,14 +305,14 @@ body.sidebar-collapsed .icon-count-badge { display: none; }
   font-size: 26px; color: #fff; flex-shrink: 0;
 }
 .topbar-brand-name {
-  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-family: 'Poppins', 'Inter', sans-serif;
   font-size: 2rem; font-weight: 800; color: #fff;
   letter-spacing: -0.01em; white-space: nowrap;
 }
 .topbar-title {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  font-size: 1.15rem; font-weight: 800; color: #fff;
+  font-family: 'Poppins', 'Inter', sans-serif;
+  font-size: 1.4rem; font-weight: 800; color: #fff;
   letter-spacing: 0.03em; text-transform: uppercase;
   white-space: nowrap; pointer-events: none;
 }
@@ -383,14 +407,10 @@ body.sidebar-collapsed .icon-count-badge { display: none; }
 
 /* ── SECTION LABEL ──────────────────────────────────────────────── */
 .section-label {
-  font-size: 1.1875rem; font-weight: 700; color: var(--text);
+  font-size: 1.4375rem; font-weight: 700; color: var(--text);
   letter-spacing: -0.01em;
   margin-bottom: 10px; margin-top: 20px;
   display: flex; align-items: center; gap: 9px;
-}
-.section-label::before {
-  content: ''; width: 4px; height: 16px; border-radius: 3px;
-  background: var(--brand); flex-shrink: 0;
 }
 .section-label:first-child { margin-top: 0; }
 
@@ -426,6 +446,30 @@ tbody tr:hover { background: var(--bg3); }
 /* Primary cell text — title, name — should be full contrast */
 tbody td strong, tbody td [style*="font-weight:500"], tbody td [style*="font-weight: 500"] { color: var(--text); }
 .empty-td { text-align: center; color: var(--text3); padding: 32px; font-size: 1rem; }
+
+/* Forces the table to stay within its container width instead of
+   overflowing and requiring horizontal scroll — cells wrap instead. */
+.table-fixed { table-layout: fixed; }
+.table-fixed th, .table-fixed td {
+  white-space: normal; overflow-wrap: break-word;
+  padding-left: 10px; padding-right: 10px; font-size: 0.875rem;
+}
+
+.table-pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px; border-top: 1.5px solid var(--border);
+}
+.table-pagination small { color: var(--text3); font-size: 0.875rem; }
+.table-pagination-nav { display: flex; align-items: center; gap: 8px; }
+.pg-arrow {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1.5px solid var(--border2); background: var(--bg2); color: var(--text2);
+  text-decoration: none; cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.pg-arrow i { font-size: 18px; }
+.pg-arrow:hover { background: var(--bg3); border-color: var(--brand); color: var(--brand); }
+.pg-arrow-disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 
 /* ── BADGES ─────────────────────────────────────────────────────── */
 .badge {
@@ -495,9 +539,16 @@ tbody td strong, tbody td [style*="font-weight:500"], tbody td [style*="font-wei
 .condition-card:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 2px; }
 .condition-card i { font-size: 1.3rem; }
 .condition-card:hover { border-color: var(--border2); }
-.condition-card[data-cond="good"].active    { border-color: var(--green); background: var(--green-dim); color: var(--green); }
-.condition-card[data-cond="damaged"].active { border-color: var(--amber); background: var(--amber-dim); color: var(--amber); }
-.condition-card[data-cond="lost"].active    { border-color: var(--red);   background: var(--red-dim);   color: var(--red); }
+.condition-card[data-cond="good"].active,
+.condition-card[data-cond="good"]:has(input:checked)       { border-color: var(--green); background: var(--green-dim); color: var(--green); }
+.condition-card[data-cond="damaged"].active,
+.condition-card[data-cond="damaged"]:has(input:checked)    { border-color: var(--amber); background: var(--amber-dim); color: var(--amber); }
+.condition-card[data-cond="lost"].active,
+.condition-card[data-cond="lost"]:has(input:checked)       { border-color: var(--red);   background: var(--red-dim);   color: var(--red); }
+
+#charge-fields { display: none; }
+#condition-cards:has(input[value="damaged"]:checked) ~ #charge-fields,
+#condition-cards:has(input[value="lost"]:checked) ~ #charge-fields { display: block; }
 
 /* ── TIER CARDS (registration membership picker) ───────────────────── */
 .tier-cards { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 6px; }
@@ -701,7 +752,7 @@ body.sidebar-collapsed .sidebar-profile .profile-dropdown { left: 0; right: auto
   table { font-size: 0.875rem; }
   thead th, tbody td { padding: 10px 12px; }
   .page-body { padding: 18px; }
-  .topbar-title { font-size: 1rem; max-width: 55vw; overflow: hidden; text-overflow: ellipsis; }
+  .topbar-title { font-size: 1.15rem; max-width: 55vw; overflow: hidden; text-overflow: ellipsis; }
 }
 
 /* ── GENERIC FORM MODAL (edit book / log damage etc.) ─────────────── */

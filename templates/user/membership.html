@@ -98,12 +98,21 @@
     });
   });
 
+  {% if autopay %}
+  // Arrived straight from registration with "Membership" selected —
+  // open the checkout immediately instead of making them click Pay.
+  // If they close/dismiss it, the account just stays on Basic (nothing
+  // here ever set membership_type — only a verified payment does).
+  var autoBtn = document.querySelector('.pay-now-btn');
+  if (autoBtn) autoBtn.click();
+  {% endif %}
+
   function startPayment(paymentId, btn) {
     setLoading(btn, true);
 
     fetch('/user/membership/pay/' + paymentId + '/create-order', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -147,7 +156,7 @@
   function verifyPayment(paymentId, response, btn) {
     fetch('/user/membership/pay/' + paymentId + '/verify', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({
         razorpay_order_id:   response.razorpay_order_id,
         razorpay_payment_id: response.razorpay_payment_id,

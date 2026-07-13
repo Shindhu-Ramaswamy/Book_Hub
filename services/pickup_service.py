@@ -58,6 +58,8 @@ class PickupService:
             return None, 'Borrowed book not found.'
         if record.status != 'borrowed':
             return None, 'This book is not currently borrowed.'
+        if record.user.membership_type != 'membership':
+            return None, 'Return pickup is a Membership perk — upgrade your membership to use it.'
         if record.pickup_order_id and not record.pickup_order.is_terminal:
             return None, 'A return pickup is already in progress for this book.'
 
@@ -261,6 +263,8 @@ class PickupService:
 
     @staticmethod
     def orders_by_status(status):
+        if status == 'all':
+            return ReturnPickupOrder.query.order_by(ReturnPickupOrder.requested_date.desc()).all()
         if status not in ('requested', 'accepted', 'out_for_pickup', 'picked_up',
                           'returned', 'rejected', 'cancelled'):
             status = 'requested'

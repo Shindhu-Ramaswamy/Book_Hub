@@ -30,7 +30,6 @@
     {% if order.fee_status == 'unpaid' and order.pickup_fee > 0 %}
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button type="button" onclick="openFormModal('{{ url_for('librarian.mark_pickup_fee_paid', order_id=order.id) }}')" class="btn btn-success btn-sm"><i class="ti ti-check"></i> Mark fee paid (cash)</button>
-      <button type="button" class="btn btn-librarian btn-sm pay-now-btn" data-amount="{{ order.pickup_fee|int }}"><i class="ti ti-credit-card"></i> Pay online (Razorpay)</button>
     </div>
     {% endif %}
   </div>
@@ -72,13 +71,13 @@
           {% for a in agents %}<option value="{{ a.id }}" {% if order.agent_id == a.id %}selected{% endif %}>{{ a.name }} ({{ a.phone }})</option>{% endfor %}
         </select>
       </div>
-      <button type="submit" class="btn btn-librarian btn-sm">Assign</button>
+      <button type="submit" class="btn {{ 'btn-success' if order.agent_id else 'btn-librarian' }}" style="height:46px;">Assign</button>
     </form>
 
     {% if order.fee_status == 'unpaid' and order.pickup_fee > 0 %}
     <div class="alert alert-warning" style="margin-bottom:12px;">
       <i class="ti ti-alert-triangle" style="font-size:18px;"></i>
-      <span>The pickup fee (₹{{ order.pickup_fee|int }}) must be paid before this order can go out for pickup — collect it via cash or Razorpay above.</span>
+      <span>The pickup fee (₹{{ order.pickup_fee|int }}) must be paid before this order can go out for pickup — collect it via cash above.</span>
     </div>
     {% elif not order.agent_id %}
     <p style="color:var(--text3);font-size:0.85rem;margin-bottom:12px;">Assign a delivery agent to continue.</p>
@@ -110,98 +109,13 @@
       the pickup order will close automatically.
     </p>
     {% for r in order.records if r.status == 'borrowed' %}
-    <a href="{{ url_for('librarian.return_inspect', record_id=r.id) }}" class="btn btn-warning btn-sm">
+    <button type="button" onclick="openFormModal('{{ url_for('librarian.return_inspect', record_id=r.id) }}')" class="btn btn-warning btn-sm">
       <i class="ti ti-corner-down-left"></i> Inspect &amp; return {{ r.book.title if r.book }}
-    </a>
+    </button>
     {% endfor %}
 
   {% else %}
     <p style="color:var(--text3);">No further action available — this order is {{ order.status }}.</p>
   {% endif %}
 </div>
-
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script>
-(function () {
-  var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-  var orderId   = {{ order.id }};
-
-  document.querySelectorAll('.pay-now-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () { startPayment(btn); });
-  });
-
-  function startPayment(btn) {
-    setLoading(btn, true);
-    fetch('/librarian/pickups/' + orderId + '/pay/create-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-    })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (!data.success) {
-          alert(data.error || 'Could not start payment.');
-          setLoading(btn, false);
-          return;
-        }
-        openCheckout(data, btn);
-      })
-      .catch(function () {
-        alert('Something went wrong starting the payment. Please try again.');
-        setLoading(btn, false);
-      });
-  }
-
-  function openCheckout(order, btn) {
-    var options = {
-      key:         order.key_id,
-      amount:      order.amount,
-      currency:    'INR',
-      name:        order.name,
-      description: order.description,
-      order_id:    order.order_id,
-      handler: function (response) { verifyPayment(response, btn); },
-      modal: { ondismiss: function () { setLoading(btn, false); } },
-      theme: { color: '#4361EE' }
-    };
-    var rzp = new Razorpay(options);
-    rzp.on('payment.failed', function () {
-      alert('Payment failed. Please try again.');
-      setLoading(btn, false);
-    });
-    rzp.open();
-  }
-
-  function verifyPayment(response, btn) {
-    fetch('/librarian/pickups/' + orderId + '/pay/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-      body: JSON.stringify({
-        razorpay_order_id:   response.razorpay_order_id,
-        razorpay_payment_id: response.razorpay_payment_id,
-        razorpay_signature:  response.razorpay_signature,
-      }),
-    })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (data.success) {
-          window.location.reload();
-        } else {
-          alert(data.error || 'Payment could not be verified. If money was deducted, contact support — payment ID ' + response.razorpay_payment_id + '.');
-          setLoading(btn, false);
-        }
-      })
-      .catch(function () {
-        alert('Payment succeeded but we could not confirm it right now. Payment ID ' + response.razorpay_payment_id + '.');
-        setLoading(btn, false);
-      });
-  }
-
-  function setLoading(btn, loading) {
-    btn.disabled = loading;
-    btn.innerHTML = loading
-      ? '<i class="ti ti-loader-2"></i> Processing…'
-      : '<i class="ti ti-credit-card"></i> Pay online (Razorpay)';
-  }
-})();
-</script>
 {% endblock %}

@@ -22,13 +22,18 @@
   .delivery-stepper .step.done .step-label,
   .delivery-stepper .step.current .step-label { color:var(--text); font-weight:700; }
   .delivery-stepper .step-date { font-size:0.75rem; color:var(--text3); margin-top:2px; }
-  .delivery-info-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
-  @media (max-width:640px) { .delivery-info-grid { grid-template-columns:1fr; } }
   .delivery-card {
     background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-lg);
     padding:20px; box-shadow:var(--shadow-sm);
   }
   .delivery-card h3 { font-size:1rem; margin-bottom:12px; }
+  .pickup-summary-row { display:flex; align-items:flex-start; gap:24px; }
+  .pickup-summary-col { flex:1; min-width:0; }
+  .pickup-summary-col:not(:first-child) { border-left:1px solid var(--border); padding-left:24px; }
+  @media (max-width:760px) {
+    .pickup-summary-row { flex-direction:column; gap:20px; }
+    .pickup-summary-col:not(:first-child) { border-left:none; padding-left:0; border-top:1px solid var(--border); padding-top:20px; }
+  }
 </style>
 
 <div id="delivery-terminal-banner">
@@ -49,6 +54,15 @@
 </div>
 {% endif %}
 </div>
+
+{% if order.status not in ('rejected', 'cancelled') and order.pickup_fee > 0 and order.fee_status == 'unpaid' %}
+<div class="alert alert-warning" style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+  <span><i class="ti ti-alert-triangle" style="font-size:18px;"></i> Pay the pickup fee of ₹{{ order.pickup_fee|int }} so this return can be accepted.</span>
+  <button type="button" class="btn btn-warning btn-sm pay-now-btn" data-amount="{{ order.pickup_fee|int }}">
+    <i class="ti ti-credit-card"></i> Pay ₹{{ order.pickup_fee|int }}
+  </button>
+</div>
+{% endif %}
 
 {% set pipeline = [
   ('requested', 'Requested', order.requested_date),
@@ -73,49 +87,46 @@
 </div>
 </div>
 
-<div class="delivery-info-grid">
-  <div class="delivery-card">
-    <h3><i class="ti ti-map-pin"></i> Pickup address</h3>
-    <p style="color:var(--text);font-weight:600;margin-bottom:4px;">{{ order.recipient_name }}</p>
-    <p style="color:var(--text2);margin-bottom:2px;">{{ order.phone }}</p>
-    <p style="color:var(--text2);margin-bottom:2px;">
-      {{ order.address_line1 }}{% if order.address_line2 %}, {{ order.address_line2 }}{% endif %}
-    </p>
-    <p style="color:var(--text2);">{{ order.city }}, {{ order.state }} — {{ order.pincode }}</p>
-    {% if order.landmark %}<p style="color:var(--text3);font-size:0.875rem;">Landmark: {{ order.landmark }}</p>{% endif %}
-  </div>
-
-  <div class="delivery-card" id="delivery-agent-card" {% if not order.agent %}style="display:none;"{% endif %}>
-    <h3><i class="ti ti-user"></i> Delivery agent</h3>
-    <p style="color:var(--text);font-weight:600;" id="delivery-agent-name">{{ order.agent.name if order.agent }}</p>
-    <p style="color:var(--text2);" id="delivery-agent-phone">{{ order.agent.phone if order.agent }}</p>
-  </div>
-</div>
-
 <div class="delivery-card" style="margin-bottom:20px;">
-  <h3><i class="ti ti-books"></i> Book being returned</h3>
-  <ul style="margin:0;padding-left:18px;color:var(--text2);">
-    {% for r in order.records %}
-    <li>{{ r.book.title if r.book else 'Unknown book' }}</li>
-    {% endfor %}
-  </ul>
-</div>
+  <div class="pickup-summary-row">
+    <div class="pickup-summary-col">
+      <h3><i class="ti ti-map-pin"></i> Pickup address</h3>
+      <p style="color:var(--text);font-weight:600;margin-bottom:4px;">{{ order.recipient_name }}</p>
+      <p style="color:var(--text2);margin-bottom:2px;">{{ order.phone }}</p>
+      <p style="color:var(--text2);margin-bottom:2px;">
+        {{ order.address_line1 }}{% if order.address_line2 %}, {{ order.address_line2 }}{% endif %}
+      </p>
+      <p style="color:var(--text2);">{{ order.city }}, {{ order.state }} — {{ order.pincode }}</p>
+      {% if order.landmark %}<p style="color:var(--text3);font-size:0.875rem;">Landmark: {{ order.landmark }}</p>{% endif %}
+    </div>
 
-<div class="delivery-card" style="max-width:420px;">
-  <h3><i class="ti ti-receipt"></i> Pickup fee</h3>
-  {% if order.pickup_fee <= 0 %}
-  <p style="margin-bottom:0;">₹0 — <span class="badge badge-success">Free (delivery already paid)</span></p>
-  {% else %}
-  <p style="margin-bottom:12px;">₹{{ order.pickup_fee|int }} —
-    {% if order.fee_status == 'paid' %}<span class="badge badge-success">Paid</span>
-    {% else %}<span class="badge badge-warning">Unpaid</span>{% endif %}
-  </p>
-  {% if order.fee_status == 'unpaid' %}
-  <button type="button" class="btn btn-user btn-sm pay-now-btn" data-amount="{{ order.pickup_fee|int }}">
-    <i class="ti ti-credit-card"></i> Pay ₹{{ order.pickup_fee|int }}
-  </button>
-  {% endif %}
-  {% endif %}
+    <div class="pickup-summary-col" id="delivery-agent-card" {% if not order.agent %}style="display:none;"{% endif %}>
+      <h3><i class="ti ti-user"></i> Delivery agent</h3>
+      <p style="color:var(--text);font-weight:600;" id="delivery-agent-name">{{ order.agent.name if order.agent }}</p>
+      <p style="color:var(--text2);" id="delivery-agent-phone">{{ order.agent.phone if order.agent }}</p>
+    </div>
+
+    <div class="pickup-summary-col">
+      <h3><i class="ti ti-books"></i> Book being returned</h3>
+      <ul style="margin:0;padding-left:18px;color:var(--text2);">
+        {% for r in order.records %}
+        <li>{{ r.book.title if r.book else 'Unknown book' }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="pickup-summary-col">
+      <h3><i class="ti ti-receipt"></i> Pickup fee</h3>
+      {% if order.pickup_fee <= 0 %}
+      <p style="margin-bottom:0;">₹0 — <span class="badge badge-success">Free (delivery already paid)</span></p>
+      {% else %}
+      <p style="margin-bottom:0;">₹{{ order.pickup_fee|int }} —
+        {% if order.fee_status == 'paid' %}<span class="badge badge-success">Paid</span>
+        {% else %}<span class="badge badge-warning">Unpaid</span>{% endif %}
+      </p>
+      {% endif %}
+    </div>
+  </div>
 </div>
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -164,7 +175,7 @@
     setLoading(btn, true);
     fetch('/user/pickups/' + orderId + '/pay/create-order', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -204,7 +215,7 @@
   function verifyPayment(response, btn) {
     fetch('/user/pickups/' + orderId + '/pay/verify', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({
         razorpay_order_id:   response.razorpay_order_id,
         razorpay_payment_id: response.razorpay_payment_id,

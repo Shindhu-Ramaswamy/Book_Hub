@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, current_app
 from flask_login import login_required, current_user
 from functools import wraps
+from math import ceil
 from services.book_service        import BookService
 from services.auth_service        import AuthService
 from services.openlibrary_service import enrich_books, search_open_library, fetch_book
@@ -13,6 +14,23 @@ from extensions         import db
 from config              import Config
 
 librarian = Blueprint('librarian', __name__)
+
+
+class ListPagination:
+    """Manual pagination for plain Python lists (BookService.all_transactions
+    filters some records in Python, e.g. 'overdue', so it can't use
+    Query.paginate() directly)."""
+    def __init__(self, items_all, page, per_page):
+        self.page     = page
+        self.per_page = per_page
+        self.total    = len(items_all)
+        self.pages    = max(1, ceil(self.total / per_page))
+        start = (page - 1) * per_page
+        self.items    = items_all[start:start + per_page]
+        self.has_prev = page > 1
+        self.has_next = page < self.pages
+        self.prev_num = page - 1
+        self.next_num = page + 1
 
 
 def librarian_required(f):
@@ -70,14 +88,18 @@ def book_list():
     availability = request.args.get('availability', 'all')
     if availability not in ('all', 'available', 'unavailable'):
         availability = 'all'
-    books = enrich_books(BookService.get_all(
+    page = request.args.get('page', 1, type=int)
+    pagination = BookService.get_all_paginated(
         genres=selected_genres or None, query=search_q or None,
         sort=sort, availability=availability if availability != 'all' else None,
-    ))
+        page=page, per_page=25,
+    )
+    books = enrich_books(pagination.items)
     return render_template('librarian/books.html', title='Book List',
                            books=books, genres=GENRES,
                            selected_genres=selected_genres,
-                           search_q=search_q, sort=sort, availability=availability)
+                           search_q=search_q, sort=sort, availability=availability,
+                           pagination=pagination)
 
 
 @librarian.route('/books/search-ol')
@@ -256,10 +278,13 @@ def reject_request(record_id):
 @login_required
 @librarian_required
 def issued_books():
-    f       = request.args.get('filter')
-    records = BookService.all_transactions(filter_by=f)
+    f          = request.args.get('filter')
+    page       = request.args.get('page', 1, type=int)
+    all_records = BookService.all_transactions(filter_by=f)
+    pagination  = ListPagination(all_records, page=page, per_page=25)
     return render_template('librarian/issued.html', title='Transactions',
-                           records=records, active_filter=f or 'all')
+                           records=pagination.items, active_filter=f or 'all',
+                           pagination=pagination)
 
 
 @librarian.route('/issued/return/<int:record_id>')
@@ -268,9 +293,21 @@ def issued_books():
 def return_inspect(record_id):
     """Return-inspection screen — librarian picks the book's condition."""
     record = BorrowRecord.query.get_or_404(record_id)
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     if record.status != 'borrowed':
+        if is_ajax:
+            return ('<button type="button" onclick="closeFormModal()" style="position:absolute;top:14px;right:14px;'
+                    'background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;line-height:1;">'
+                    '<i class="ti ti-x"></i></button>'
+                    '<p style="padding:10px 0;color:var(--text2);">This book has already been returned.</p>')
         flash('This book has already been returned.', 'danger')
         return redirect(url_for('librarian.issued_books'))
+    if is_ajax:
+        return render_template(
+            'librarian/_return_inspect_fragment.html',
+            record=record, damage_default=Config.DAMAGE_CHARGE,
+            lost_default=Config.LOST_BOOK_CHARGE,
+        )
     return render_template(
         'librarian/return_inspect.html', title='Return Inspection',
         record=record, damage_default=Config.DAMAGE_CHARGE,
@@ -282,6 +319,7 @@ def return_inspect(record_id):
 @login_required
 @librarian_required
 def return_book(record_id):
+    is_ajax       = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     condition     = request.form.get('condition', 'good')
     notes         = request.form.get('notes') or None
     charge_amount = request.form.get('charge_amount')
@@ -301,7 +339,12 @@ def return_book(record_id):
     if not overdue_charge and not condition_charge:
         parts.append('No charges.')
 
-    flash(' '.join(parts), 'warning' if (overdue_charge or condition_charge) else 'success')
+    message = ' '.join(parts)
+    category = 'warning' if (overdue_charge or condition_charge) else 'success'
+    if is_ajax:
+        flash(message, category)
+        return jsonify({'success': True, 'message': message})
+    flash(message, category)
     return redirect(url_for('librarian.issued_books'))
 
 
@@ -345,8 +388,17 @@ def mark_paid(overdue_id):
 @login_required
 @librarian_required
 def users_list():
-    users = User.query.filter_by(role='user').order_by(User.id).all()
-    return render_template('librarian/users.html', title='Users', users=users)
+    search_q = request.args.get('q', '').strip()
+    query = User.query.filter_by(role='user')
+    if search_q:
+        like = f'%{search_q}%'
+        query = query.filter(db.or_(
+            User.name.ilike(like),
+            User.email.ilike(like),
+            User.phone.ilike(like),
+        ))
+    users = query.order_by(User.id).all()
+    return render_template('librarian/users.html', title='Users', users=users, search_q=search_q)
 
 
 @librarian.route('/users/<int:user_id>')
@@ -368,8 +420,12 @@ def user_detail(user_id):
 @login_required
 @librarian_required
 def history():
-    records = BorrowRecord.query.order_by(BorrowRecord.request_date.desc()).all()
-    return render_template('librarian/history.html', title='History', records=records)
+    page = request.args.get('page', 1, type=int)
+    pagination = BorrowRecord.query.order_by(
+        BorrowRecord.request_date.desc(), BorrowRecord.id.desc()
+    ).paginate(page=page, per_page=25, error_out=False)
+    return render_template('librarian/history.html', title='History',
+                           records=pagination.items, pagination=pagination)
 
 
 @librarian.route('/damaged')
@@ -608,16 +664,6 @@ def pack_delivery(order_id):
     return redirect(url_for('librarian.delivery_detail', order_id=order_id))
 
 
-@librarian.route('/deliveries/<int:order_id>/ship', methods=['POST'])
-@login_required
-@librarian_required
-def ship_delivery(order_id):
-    from services.delivery_service import DeliveryService
-    order, err = DeliveryService.mark_shipped(order_id)
-    flash(err if err else 'Order marked as shipped.', 'danger' if err else 'success')
-    return redirect(url_for('librarian.delivery_detail', order_id=order_id))
-
-
 @librarian.route('/deliveries/<int:order_id>/out-for-delivery', methods=['POST'])
 @login_required
 @librarian_required
@@ -658,75 +704,6 @@ def mark_delivery_fee_paid(order_id):
                                order=order, payment_methods=PAYMENT_METHODS)
     return render_template('librarian/mark_delivery_paid.html', title='Mark Paid',
                            order=order, payment_methods=PAYMENT_METHODS)
-
-
-@librarian.route('/deliveries/<int:order_id>/pay/create-order', methods=['POST'])
-@login_required
-@librarian_required
-def create_delivery_payment_order_lib(order_id):
-    """
-    Librarian-initiated Razorpay checkout — for collecting the delivery
-    fee online (QR/link shown on the librarian's screen) instead of
-    cash. Same create-order/verify pattern as the user-side routes in
-    routes/user.py, just without an ownership check since any librarian
-    may collect payment for any order.
-    """
-    from services.delivery_service import DeliveryService
-    from services.payment_service import create_order, PaymentConfigError
-
-    order = DeliveryService.get_or_404(order_id)
-    if order.fee_status == 'paid':
-        return jsonify({'success': False, 'error': 'This delivery fee is already paid.'}), 400
-
-    try:
-        gw_order = create_order(order.delivery_fee, receipt=f'delivery-{order.id}')
-    except PaymentConfigError as e:
-        current_app.logger.error('Razorpay not configured: %s', e)
-        return jsonify({'success': False, 'error': 'Online payment is not available right now.'}), 503
-    except Exception as e:
-        current_app.logger.error('Razorpay order creation failed: %s', e)
-        return jsonify({'success': False, 'error': 'Could not start payment. Please try again.'}), 502
-
-    order.gateway_order_id = gw_order['id']
-    db.session.commit()
-
-    return jsonify({
-        'success':  True,
-        'order_id': gw_order['id'],
-        'amount':   gw_order['amount'],
-        'key_id':   current_app.config.get('RAZORPAY_KEY_ID'),
-        'name':     'LibraryMS',
-        'description': f'Delivery fee — Order #{order.id}',
-    })
-
-
-@librarian.route('/deliveries/<int:order_id>/pay/verify', methods=['POST'])
-@login_required
-@librarian_required
-def verify_delivery_payment_lib(order_id):
-    from services.delivery_service import DeliveryService
-    from services.payment_service import verify_signature
-
-    order = DeliveryService.get_or_404(order_id)
-
-    body        = request.get_json(silent=True) or {}
-    gw_order_id = body.get('razorpay_order_id')
-    payment_id  = body.get('razorpay_payment_id')
-    signature   = body.get('razorpay_signature')
-
-    if not all([gw_order_id, payment_id, signature]):
-        return jsonify({'success': False, 'error': 'Missing payment details.'}), 400
-
-    if gw_order_id != order.gateway_order_id:
-        return jsonify({'success': False, 'error': 'Payment does not match this order.'}), 400
-
-    if not verify_signature(gw_order_id, payment_id, signature):
-        return jsonify({'success': False, 'error': 'Payment verification failed.'}), 400
-
-    DeliveryService.record_online_payment(
-        order.id, gateway='razorpay', order_id_gw=gw_order_id, payment_id=payment_id
-    )
-    return jsonify({'success': True, 'message': 'Payment verified — delivery fee cleared!'})
 
 
 # ── Delivery agent roster ────────────────────────────────────────────
@@ -924,8 +901,7 @@ def mark_pickup_fee_paid(order_id):
 @login_required
 @librarian_required
 def create_pickup_payment_order_lib(order_id):
-    """Librarian-initiated Razorpay checkout — mirrors
-    create_delivery_payment_order_lib."""
+    """Librarian-initiated Razorpay checkout for a return pickup fee."""
     from services.pickup_service import PickupService
     from services.payment_service import create_order, PaymentConfigError
 
