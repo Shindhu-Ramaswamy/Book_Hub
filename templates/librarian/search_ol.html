@@ -1,0 +1,73 @@
+{% extends 'base_librarian.html' %}
+{% block page_title %}Import From Open Library{% endblock %}
+{% block content %}
+
+<div style="max-width:560px;margin:0 auto 24px;">
+  <form method="GET" action="{{ url_for('librarian.search_ol') }}" style="display:flex;gap:10px;">
+    <div class="search-box" style="width:100%;border-radius:var(--radius);">
+      <i class="ti ti-search"></i>
+      <input type="text" name="q" placeholder="Search by title or author…" value="{{ query or '' }}" autofocus>
+    </div>
+    <button type="submit" class="btn btn-librarian">Search</button>
+  </form>
+</div>
+
+{% if results %}
+<div class="book-grid">
+  {% for r in results %}
+  <div class="book-card">
+    {% if r.cover_url %}
+      <img class="book-cover-img" src="{{ r.cover_url }}" alt="{{ r.title }}" loading="lazy"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="book-cover-placeholder" style="display:none;"><i class="ti ti-book"></i><span>{{ r.title }}</span></div>
+    {% else %}
+      <div class="book-cover-placeholder"><i class="ti ti-book"></i><span>{{ r.title }}</span></div>
+    {% endif %}
+    <div class="book-card-body">
+      <div class="book-card-title">{{ r.title }}</div>
+      <div class="book-card-author">{{ r.author }}</div>
+      <div style="font-size:0.68rem;color:var(--text3);margin-bottom:8px;">ISBN: {{ r.isbn }}</div>
+
+      <!-- Mini import form embedded in card -->
+      <form method="POST" action="{{ url_for('librarian.import_ol') }}" style="display:flex;flex-direction:column;gap:5px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="isbn"   value="{{ r.isbn }}">
+        <input type="hidden" name="title"  value="{{ r.title }}">
+        <input type="hidden" name="author" value="{{ r.author }}">
+        <input type="hidden" name="q"      value="{{ query }}">
+        <select name="genre" required style="font-size:0.72rem;padding:4px 6px;border:1px solid var(--border2);border-radius:6px;background:var(--bg3);color:var(--text);outline:none;">
+          <option value="" disabled selected>Genre</option>
+          {% set genres = ['Fiction','Non-Fiction','Mystery','Thriller','Science Fiction',
+                           'Fantasy','Romance','Horror','Historical Fiction','Biography',
+                           'Autobiography','Self-Help','Adventure','Drama','Poetry',
+                           "Children's Literature",'Young Adult','Educational','Technology',
+                           'Health & Fitness'] %}
+          {% for g in genres %}<option value="{{ g }}">{{ g }}</option>{% endfor %}
+        </select>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <label style="font-size:0.7rem;color:var(--text3);">Qty</label>
+          <input type="number" name="total_quantity" value="1" min="1" max="99"
+                 style="width:48px;font-size:0.78rem;padding:3px 6px;border:1px solid var(--border2);border-radius:6px;background:var(--bg3);color:var(--text);">
+        </div>
+        <button type="submit" class="btn btn-librarian btn-sm" style="width:100%;justify-content:center;">
+          <i class="ti ti-download"></i> Import
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% elif query %}
+<div class="empty-state">
+  <i class="ti ti-search"></i>
+  <p>No results found for "{{ query }}" on Open Library.</p>
+  <a href="#" onclick="openFormModal('{{ url_for('librarian.add_book') }}'); return false;" class="btn btn-librarian">Add book manually</a>
+</div>
+{% else %}
+<div class="empty-state">
+  <i class="ti ti-books"></i>
+  <p>Search for a book title or author above to import from Open Library.</p>
+</div>
+{% endif %}
+
+{% endblock %}

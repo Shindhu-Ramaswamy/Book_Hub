@@ -1,0 +1,164 @@
+{% extends 'base_user.html' %}
+{% block page_title %}Fines{% endblock %}
+{% block content %}
+
+<div class="table-wrap">
+  <div class="table-head">
+    <span class="table-head-title">Unpaid Fines</span>
+    <small style="color:var(--text3)">{{ unpaid|length }} record(s)</small>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>Fine ID</th><th>Book</th><th>Type</th><th>Amount (₹)</th><th>Raised on</th><th>Pay</th></tr></thead>
+      <tbody>
+        {% for r in unpaid %}
+        <tr>
+          <td><span class="badge badge-gray">FIN-{{ '%03d'%r.id }}</span></td>
+          <td>{{ r.borrow_record.book.title if r.borrow_record and r.borrow_record.book else '—' }}</td>
+          <td>
+            {% if r.charge_type == 'damaged' %}<span class="badge badge-warning">Damaged</span>
+            {% elif r.charge_type == 'lost' %}<span class="badge badge-danger">Lost</span>
+            {% else %}<span class="badge badge-gray">Overdue</span>{% endif %}
+          </td>
+          <td><span class="badge badge-danger">₹{{ r.amount|int }}</span></td>
+          <td>{{ r.issued_date }}</td>
+          <td>
+            <button type="button" class="btn btn-user btn-sm pay-now-btn"
+                    data-overdue-id="{{ r.id }}" data-amount="{{ r.amount|int }}">
+              <i class="ti ti-credit-card"></i> Pay ₹{{ r.amount|int }}
+            </button>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty-td">No unpaid fines — you're all clear!</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <div class="table-head">
+    <span class="table-head-title">Payment History</span>
+    <small style="color:var(--text3)">Last {{ paid|length }} payment(s)</small>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>Fine ID</th><th>Book</th><th>Amount (₹)</th><th>Paid on</th><th>Method</th></tr></thead>
+      <tbody>
+        {% for r in paid %}
+        <tr>
+          <td><span class="badge badge-gray">FIN-{{ '%03d'%r.id }}</span></td>
+          <td>{{ r.borrow_record.book.title if r.borrow_record and r.borrow_record.book else '—' }}</td>
+          <td>₹{{ r.amount|int }}</td>
+          <td>{{ r.paid_date }}</td>
+          <td>
+            {% if r.payment_gateway %}
+              <span class="badge badge-success">{{ r.payment_gateway|title }}</span>
+            {% else %}
+              <span class="badge badge-info">{{ r.payment_method or '—' }} (at counter)</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="empty-td">No payments yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+(function () {
+  var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+  document.querySelectorAll('.pay-now-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var overdueId = btn.dataset.overdueId;
+      startPayment(overdueId, btn);
+    });
+  });
+
+  function startPayment(overdueId, btn) {
+    setLoading(btn, true);
+
+    fetch('/user/fines/' + overdueId + '/pay/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.success) {
+          alert(data.error || 'Could not start payment.');
+          setLoading(btn, false);
+          return;
+        }
+        openCheckout(overdueId, data, btn);
+      })
+      .catch(function () {
+        alert('Something went wrong starting the payment. Please try again.');
+        setLoading(btn, false);
+      });
+  }
+
+  function openCheckout(overdueId, order, btn) {
+    var options = {
+      key:         order.key_id,
+      amount:      order.amount,
+      currency:    'INR',
+      name:        order.name,
+      description: order.description,
+      order_id:    order.order_id,
+      handler: function (response) {
+        verifyPayment(overdueId, response, btn);
+      },
+      modal: {
+        // User closed the popup without paying — just reset the button,
+        // no error needed, they simply changed their mind.
+        ondismiss: function () { setLoading(btn, false); }
+      },
+      theme: { color: '#4361EE' }
+    };
+    var rzp = new Razorpay(options);
+    rzp.on('payment.failed', function () {
+      alert('Payment failed. Please try again.');
+      setLoading(btn, false);
+    });
+    rzp.open();
+  }
+
+  function verifyPayment(overdueId, response, btn) {
+    fetch('/user/fines/' + overdueId + '/pay/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({
+        razorpay_order_id:   response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature:  response.razorpay_signature,
+      }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          window.location.reload();
+        } else {
+          alert(data.error || 'Payment could not be verified. If money was deducted, contact the library — your payment ID is ' + response.razorpay_payment_id + '.');
+          setLoading(btn, false);
+        }
+      })
+      .catch(function () {
+        alert('Payment succeeded but we could not confirm it right now. Contact the library with payment ID ' + response.razorpay_payment_id + '.');
+        setLoading(btn, false);
+      });
+  }
+
+  function setLoading(btn, loading) {
+    btn.disabled = loading;
+    btn.innerHTML = loading
+      ? '<i class="ti ti-loader-2"></i> Processing…'
+      : '<i class="ti ti-credit-card"></i> Pay ₹' + btn.dataset.amount;
+  }
+})();
+</script>
+{% endblock %}

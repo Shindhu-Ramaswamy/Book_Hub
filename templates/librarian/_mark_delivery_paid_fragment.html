@@ -1,0 +1,17 @@
+<button type="button" onclick="closeFormModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;line-height:1;"><i class="ti ti-x"></i></button>
+<h3 style="margin-bottom:18px;">Mark delivery fee as paid</h3>
+<p style="margin-bottom:8px;">Member: <strong style="color:var(--text);">{{ order.user.name }}</strong></p>
+<p style="margin-bottom:16px;">Delivery fee: <strong style="color:var(--red);">₹{{ order.delivery_fee|int }}</strong></p>
+<form method="POST" action="{{ url_for('librarian.mark_delivery_fee_paid', order_id=order.id) }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-group">
+    <label>Payment method</label>
+    <select name="payment_method" required>
+      {% for m in payment_methods %}<option value="{{ m }}">{{ m|capitalize }}</option>{% endfor %}
+    </select>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:4px;">
+    <button type="submit" class="btn btn-success">Confirm payment</button>
+    <button type="button" class="btn" onclick="closeFormModal()">Cancel</button>
+  </div>
+</form>

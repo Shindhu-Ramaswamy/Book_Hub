@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>BookHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body class="landing-body">
+  <div class="landing-wrap">
+    <div class="landing-logo">{% include '_book_stack_icon.html' %}</div>
+    <h1 class="landing-title">BookHub</h1>
+    <p class="landing-sub">Your digital library. Choose your role to continue.</p>
+    <div class="landing-cards">
+      <a href="{{ url_for('auth.login_user_page') }}" class="landing-card card-user">
+        <div class="lc-icon-box"><i class="ti ti-user"></i></div>
+        <div class="lc-title">Member</div>
+        <div class="lc-sub">Browse &amp; borrow books</div>
+      </a>
+      <a href="{{ url_for('auth.login_librarian_page') }}" class="landing-card card-lib">
+        <div class="lc-icon-box"><i class="ti ti-book-2"></i></div>
+        <div class="lc-title">Librarian</div>
+        <div class="lc-sub">Manage books &amp; members</div>
+      </a>
+      <a href="{{ url_for('auth.login_admin_page') }}" class="landing-card card-admin">
+        <div class="lc-icon-box"><i class="ti ti-shield-check"></i></div>
+        <div class="lc-title">Admin</div>
+        <div class="lc-sub">System administration</div>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

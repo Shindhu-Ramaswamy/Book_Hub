@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BookHub Admin — {{ title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body>
+<div class="topbar">
+  <button class="mobile-toggle" id="mobile-toggle" onclick="toggleSidebar()" aria-label="Menu"><i class="ti ti-menu-2"></i></button>
+  <div class="topbar-brand">
+    <div class="topbar-brand-icon">{% include '_book_stack_icon.html' %}</div>
+    <span class="topbar-brand-name">BookHub</span>
+  </div>
+  <span class="topbar-title">{% block page_title %}{% endblock %}</span>
+  <div class="topbar-actions">
+  <button class="topbar-icon icon-plain" onclick="toggleProfile(event)" aria-label="Profile">
+    <div class="user-avatar admin-av">{{ current_user.name[:2].upper() }}</div>
+  </button>
+  </div>
+</div>
+<div class="app-shell">
+
+  <nav class="sidebar" id="sidebar">
+    <button type="button" class="sidebar-toggle-icon" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i class="ti ti-layout-sidebar-left-collapse"></i></button>
+    <a href="{{ url_for('admin.home') }}"        class="nav-item {% if request.endpoint=='admin.home' %}active-admin{% endif %}" aria-label="Dashboard"><i class="ti ti-layout-dashboard"></i><span class="nav-label">Dashboard</span></a>
+    <a href="{{ url_for('admin.users') }}"        class="nav-item {% if request.endpoint=='admin.users' %}active-admin{% endif %}" aria-label="Members"><i class="ti ti-users"></i><span class="nav-label">Members</span></a>
+    <a href="{{ url_for('admin.librarians') }}"   class="nav-item {% if request.endpoint in ('admin.librarians','admin.add_librarian') %}active-admin{% endif %}" aria-label="Librarians"><i class="ti ti-user-check"></i><span class="nav-label">Librarians</span></a>
+    <a href="{{ url_for('admin.books') }}"        class="nav-item {% if request.endpoint=='admin.books' %}active-admin{% endif %}" aria-label="Books"><i class="ti ti-books"></i><span class="nav-label">All Books</span></a>
+    <a href="{{ url_for('admin.fines') }}"        class="nav-item {% if request.endpoint in ('admin.fines','admin.run_fine_check_now') %}active-admin{% endif %}" aria-label="Fines"><i class="ti ti-receipt-tax"></i><span class="nav-label">Fine Management</span></a>
+    <div class="nav-spacer"></div>
+  </nav>
+
+  <div class="main-area">
+    <div class="page-body">
+      <div class="toast-stack">
+      {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
+      </div>
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+
+<div class="profile-overlay" id="profile-overlay" onclick="closeProfileOutside(event)">
+  <div class="profile-panel">
+    <button class="profile-close" onclick="closeProfile()"><i class="ti ti-x"></i></button>
+    <div class="profile-av-circle admin">{{ current_user.name[:2].upper() }}</div>
+    <div class="profile-name">{{ current_user.name }}</div>
+    <div class="profile-id">{{ current_user.formatted_id }} · Admin</div>
+    <hr class="profile-divider">
+    <a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-block" style="margin-top:8px;">Sign out</a>
+  </div>
+</div>
+
+<div class="form-modal-overlay" id="form-modal-overlay" onclick="closeFormModalOutside(event)">
+  <div class="form-modal-box" id="form-modal-box"></div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

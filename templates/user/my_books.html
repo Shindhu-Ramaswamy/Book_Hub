@@ -1,0 +1,75 @@
+{% extends 'base_user.html' %}
+{% block page_title %}Books{% endblock %}
+{% block content %}
+
+<p class="section-label">Pending &amp; active requests</p>
+<div class="table-wrap" style="margin-bottom:20px;">
+  <div class="table-head">
+    <span class="table-head-title">Requests</span>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>Book</th><th>Requested on</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td style="color:var(--text);font-weight:500;">{{ r.book.title }}</td>
+          <td>{{ r.request_date or '—' }}</td>
+          <td><span class="badge badge-warning">Pending</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="empty-td">No requests yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<p class="section-label">Currently issued</p>
+<div class="table-wrap">
+  <div class="table-head">
+    <span class="table-head-title">Issued Books</span>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>Issue ID</th><th>Book</th><th>Issue date</th><th>Due date</th><th>Days left</th><th>Fine (₹)</th><th>Return</th></tr></thead>
+      <tbody>
+        {% for i in issued %}
+        <tr>
+          <td><span class="badge badge-gray">ISS-{{ '%03d'%i.id }}</span></td>
+          <td style="color:var(--text);font-weight:500;">{{ i.book.title }}</td>
+          <td>{{ i.issue_date }}</td>
+          <td>{{ i.due_date }}</td>
+          <td>
+            {% if i.days_remaining < 0 %}<span class="badge badge-danger">Overdue {{ i.days_remaining|abs }}d</span>
+            {% elif i.days_remaining <= 5 %}<span class="badge badge-warning">{{ i.days_remaining }}d left</span>
+            {% else %}<span class="badge badge-success">{{ i.days_remaining }}d left</span>{% endif %}
+          </td>
+          <td>
+            {% if i.current_fine > 0 %}<span class="badge badge-danger">₹{{ i.current_fine|int }}</span>
+            {% else %}<span class="badge badge-success">₹0</span>{% endif %}
+          </td>
+          <td style="display:flex;gap:8px;flex-wrap:wrap;">
+            {% if i.pickup_order and not i.pickup_order.is_terminal %}
+              <a href="{{ url_for('user.pickup_tracking', order_id=i.pickup_order.id) }}" class="btn btn-sm"><i class="ti ti-truck"></i> Pickup {{ i.pickup_order.status|replace('_',' ')|title }}</a>
+            {% else %}
+              <a href="{{ url_for('user.pickup_request_form', record_id=i.id) }}" class="btn btn-user btn-sm"><i class="ti ti-package-export"></i> Request Pickup</a>
+              {% if i.return_requested_at %}
+                <span class="badge badge-info"><i class="ti ti-corner-down-left"></i> Return Requested</span>
+              {% else %}
+                <form method="POST" action="{{ url_for('user.request_return', record_id=i.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm"><i class="ti ti-building-bank"></i> Return at Library</button>
+                </form>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="empty-td">No books currently issued.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

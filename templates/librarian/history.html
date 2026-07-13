@@ -1,0 +1,40 @@
+{% extends 'base_librarian.html' %}
+{% block page_title %}History{% endblock %}
+{% block content %}
+<div class="table-wrap">
+  <div class="table-head" style="justify-content:flex-end;">
+    <small style="color:var(--text3)">{{ records|length }} record(s)</small>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>ID</th><th>Member</th><th>Book</th><th>Requested</th><th>Issued</th><th>Due</th><th>Returned</th><th>Issued by</th><th>Fine (₹)</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td><span class="badge badge-gray">BR-{{ '%03d'%r.id }}</span></td>
+          <td style="color:var(--text);font-weight:500;">{{ r.user.name }}<br><small style="color:var(--text3);font-weight:400;">{{ r.user.formatted_id }}</small></td>
+          <td>{{ r.book.title }}</td>
+          <td>{{ r.request_date or '—' }}</td>
+          <td>{{ r.issue_date or '—' }}</td>
+          <td>{{ r.due_date or '—' }}</td>
+          <td>{{ r.return_date or '—' }}</td>
+          <td>{{ r.librarian.name if r.librarian else '—' }}</td>
+          <td>{% if r.total_charges > 0 %}<span class="badge badge-danger">₹{{ r.total_charges|int }}</span>{% else %}<span class="badge badge-success">₹0</span>{% endif %}</td>
+          <td>
+            {% if r.status == 'returned' and r.condition_type == 'damaged' %}<span class="badge badge-warning">Returned (Damaged)</span>
+            {% elif r.status == 'returned' %}<span class="badge badge-success">Returned</span>
+            {% elif r.status == 'lost' %}<span class="badge badge-danger">Lost</span>
+            {% elif r.status == 'borrowed' and r.is_overdue %}<span class="badge badge-danger">Overdue</span>
+            {% elif r.status == 'borrowed' %}<span class="badge badge-info">Issued</span>
+            {% elif r.status == 'pending' %}<span class="badge badge-warning">Pending</span>
+            {% else %}<span class="badge badge-gray">{{ r.status }}</span>{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" class="empty-td">No transactions yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

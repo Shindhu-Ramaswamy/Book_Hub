@@ -1,0 +1,35 @@
+{% extends 'base_user.html' %}
+{% block page_title %}History{% endblock %}
+{% block content %}
+<div class="table-wrap">
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>#</th><th>Book</th><th>Requested</th><th>Borrowed</th><th>Due</th><th>Returned</th><th>Fine (₹)</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td><span class="badge badge-gray">{{ r.id }}</span></td>
+          <td style="color:var(--text);font-weight:500;">{{ r.book.title }}</td>
+          <td>{{ r.request_date or '—' }}</td>
+          <td>{{ r.borrow_date or '—' }}</td>
+          <td>{{ r.due_date or '—' }}</td>
+          <td>{{ r.return_date or '—' }}</td>
+          <td>{% if r.total_charges > 0 %}<span class="badge badge-danger">₹{{ r.total_charges|int }}</span>{% else %}<span class="badge badge-success">₹0</span>{% endif %}</td>
+          <td>
+            {% if r.status=='returned' and r.condition_type=='damaged' %}<span class="badge badge-warning">Returned (Damaged)</span>
+            {% elif r.status=='returned' %}<span class="badge badge-success">Returned</span>
+            {% elif r.status=='lost' %}<span class="badge badge-danger">Lost</span>
+            {% elif r.status=='pending' %}<span class="badge badge-warning">Pending</span>
+            {% elif r.status=='rejected' %}<span class="badge badge-danger">Rejected</span>
+            {% elif r.status=='borrowed' %}<span class="badge badge-info">Borrowed</span>
+            {% else %}<span class="badge badge-gray">{{ r.status }}</span>{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="empty-td">No history yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

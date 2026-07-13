@@ -1,0 +1,35 @@
+{% extends 'base_librarian.html' %}
+{% block page_title %}Delivery Agents{% endblock %}
+{% block content %}
+<div class="table-wrap">
+  <div class="table-head">
+    <span class="table-head-title">Delivery Agent Roster</span>
+    <button type="button" class="btn btn-librarian btn-sm" onclick="openFormModal('{{ url_for('librarian.add_delivery_agent') }}')"><i class="ti ti-plus"></i> Add agent</button>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>Name</th><th>Phone</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for a in agents %}
+        <tr>
+          <td style="color:var(--text);font-weight:500;">{{ a.name }}</td>
+          <td>{{ a.phone }}</td>
+          <td>{% if a.is_active %}<span class="badge badge-success">Active</span>{% else %}<span class="badge badge-gray">Inactive</span>{% endif %}</td>
+          <td style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm" onclick="openFormModal('{{ url_for('librarian.edit_delivery_agent', agent_id=a.id) }}')"><i class="ti ti-edit"></i> Edit</button>
+            <form method="POST" action="{{ url_for('librarian.toggle_delivery_agent', agent_id=a.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm {% if a.is_active %}btn-danger{% else %}btn-success{% endif %}">
+                {% if a.is_active %}<i class="ti ti-ban"></i> Disable{% else %}<i class="ti ti-check"></i> Enable{% endif %}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="empty-td">No delivery agents yet — add one to start assigning deliveries.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

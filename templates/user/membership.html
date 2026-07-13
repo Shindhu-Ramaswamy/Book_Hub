@@ -1,0 +1,181 @@
+{% extends 'base_user.html' %}
+{% block page_title %}Membership{% endblock %}
+{% block content %}
+
+<div class="stat-grid">
+  <div class="stat-card"><div class="sc-label">Current tier</div><div class="sc-val brand">{{ current_user.membership_label }}</div></div>
+  <div class="stat-card"><div class="sc-label">Books at once</div><div class="sc-val">{{ current_user.max_books }}</div></div>
+  <div class="stat-card"><div class="sc-label">Borrow period</div><div class="sc-val">{{ current_user.borrow_days }} days</div></div>
+  <div class="stat-card">
+    <div class="sc-label">Status</div>
+    {% if current_user.membership_active %}
+      <div class="sc-val" style="color:var(--green);font-size:1.1rem;">Active</div>
+      <small style="color:var(--text3);">until {{ current_user.membership_paid_until }}</small>
+    {% else %}
+      <div class="sc-val red" style="font-size:1.1rem;">
+        {% if current_user.membership_paid_until %}Expired{% else %}Unpaid{% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if pending %}
+<div class="table-wrap">
+  <div class="table-head"><span class="table-head-title">Payment Due</span></div>
+  <div style="padding:20px 24px;">
+    <p style="margin-bottom:6px;">
+      {% if pending.payment_type == 'registration' %}Registration fee
+      {% elif pending.payment_type == 'renewal' %}{{ pending.membership_type|title }} renewal fee
+      {% else %}Membership upgrade fee{% endif %}
+      — <strong style="color:var(--red);">₹{{ pending.amount|int }}</strong>
+    </p>
+    <p style="color:var(--text3);margin-bottom:16px;font-size:0.85rem;">
+      Raised on {{ pending.issued_date }}. Pay online now, or pay cash at the counter and ask a librarian to confirm it.
+    </p>
+    <button type="button" class="btn btn-user pay-now-btn"
+            data-payment-id="{{ pending.id }}" data-amount="{{ pending.amount|int }}">
+      <i class="ti ti-credit-card"></i> Pay ₹{{ pending.amount|int }} online
+    </button>
+  </div>
+</div>
+{% elif current_user.membership_type == 'basic' and current_user.membership_active %}
+<div class="table-wrap">
+  <div class="table-head"><span class="table-head-title">Upgrade To Membership</span></div>
+  <div style="padding:20px 24px;">
+    <p style="margin-bottom:6px;color:var(--text2);">
+      Pay ₹{{ upgrade_rules.upgrade_fee|int }} to upgrade — borrow up to
+      <strong>{{ upgrade_rules.max_books }} books</strong> at once for <strong>{{ upgrade_rules.borrow_days }} days</strong> each,
+      renewing at ₹{{ upgrade_rules.renewal_fee|int }}/year instead of ₹{{ current_user.membership_rules.renewal_fee|int }}/year.
+    </p>
+    <form method="POST" action="{{ url_for('user.upgrade_membership') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-user"><i class="ti ti-crown"></i> Request upgrade</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<div class="table-wrap">
+  <div class="table-head">
+    <span class="table-head-title">Payment History</span>
+    <small style="color:var(--text3)">{{ history|length }} record(s)</small>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>Type</th><th>Tier</th><th>Amount (₹)</th><th>Raised on</th><th>Status</th><th>Paid on</th><th>Method</th></tr></thead>
+      <tbody>
+        {% for p in history %}
+        <tr>
+          <td>{{ p.payment_type|capitalize }}</td>
+          <td><span class="badge badge-info">{{ p.membership_type|capitalize }}</span></td>
+          <td>₹{{ p.amount|int }}</td>
+          <td>{{ p.issued_date }}</td>
+          <td>{% if p.status == 'paid' %}<span class="badge badge-success">Paid</span>{% else %}<span class="badge badge-danger">Unpaid</span>{% endif %}</td>
+          <td>{{ p.paid_date or '—' }}</td>
+          <td>
+            {% if p.payment_gateway %}<span class="badge badge-success">{{ p.payment_gateway|title }}</span>
+            {% elif p.payment_method %}<span class="badge badge-info">{{ p.payment_method }} (at counter)</span>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="empty-td">No membership payments yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pending %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+(function () {
+  var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+  document.querySelectorAll('.pay-now-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      startPayment(btn.dataset.paymentId, btn);
+    });
+  });
+
+  function startPayment(paymentId, btn) {
+    setLoading(btn, true);
+
+    fetch('/user/membership/pay/' + paymentId + '/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.success) {
+          alert(data.error || 'Could not start payment.');
+          setLoading(btn, false);
+          return;
+        }
+        openCheckout(paymentId, data, btn);
+      })
+      .catch(function () {
+        alert('Something went wrong starting the payment. Please try again.');
+        setLoading(btn, false);
+      });
+  }
+
+  function openCheckout(paymentId, order, btn) {
+    var options = {
+      key:         order.key_id,
+      amount:      order.amount,
+      currency:    'INR',
+      name:        order.name,
+      description: order.description,
+      order_id:    order.order_id,
+      handler: function (response) {
+        verifyPayment(paymentId, response, btn);
+      },
+      modal: {
+        ondismiss: function () { setLoading(btn, false); }
+      },
+      theme: { color: '#4361EE' }
+    };
+    var rzp = new Razorpay(options);
+    rzp.on('payment.failed', function () {
+      alert('Payment failed. Please try again.');
+      setLoading(btn, false);
+    });
+    rzp.open();
+  }
+
+  function verifyPayment(paymentId, response, btn) {
+    fetch('/user/membership/pay/' + paymentId + '/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({
+        razorpay_order_id:   response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature:  response.razorpay_signature,
+      }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          window.location.reload();
+        } else {
+          alert(data.error || 'Payment could not be verified. If money was deducted, contact the library — your payment ID is ' + response.razorpay_payment_id + '.');
+          setLoading(btn, false);
+        }
+      })
+      .catch(function () {
+        alert('Payment succeeded but we could not confirm it right now. Contact the library with payment ID ' + response.razorpay_payment_id + '.');
+        setLoading(btn, false);
+      });
+  }
+
+  function setLoading(btn, loading) {
+    btn.disabled = loading;
+    btn.innerHTML = loading
+      ? '<i class="ti ti-loader-2"></i> Processing…'
+      : '<i class="ti ti-credit-card"></i> Pay ₹' + btn.dataset.amount + ' online';
+  }
+})();
+</script>
+{% endif %}
+{% endblock %}

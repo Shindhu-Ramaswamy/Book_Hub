@@ -1,0 +1,237 @@
+{% extends 'base_user.html' %}
+{% block page_title %}Track Pickup{% endblock %}
+{% block content %}
+
+<style>
+  .delivery-stepper { display:flex; align-items:flex-start; margin-bottom:28px; overflow-x:auto; padding:8px 4px; }
+  .delivery-stepper .step { flex:1; min-width:110px; text-align:center; position:relative; }
+  .delivery-stepper .step:not(:first-child)::before {
+    content:''; position:absolute; top:15px; left:-50%; width:100%; height:3px;
+    background:var(--border); z-index:0;
+  }
+  .delivery-stepper .step.done:not(:first-child)::before { background:var(--green); }
+  .delivery-stepper .step-dot {
+    width:32px; height:32px; border-radius:50%; background:var(--bg3); border:3px solid var(--border);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 8px; position:relative; z-index:1;
+    color:var(--text3); font-size:16px;
+  }
+  .delivery-stepper .step.done .step-dot,
+  .delivery-stepper .step.current .step-dot { background:var(--green); border-color:var(--green); color:#fff; }
+  .delivery-stepper .step.current .step-dot { box-shadow:0 0 0 4px var(--green-dim); }
+  .delivery-stepper .step-label { font-size:0.8125rem; font-weight:600; color:var(--text3); }
+  .delivery-stepper .step.done .step-label,
+  .delivery-stepper .step.current .step-label { color:var(--text); font-weight:700; }
+  .delivery-stepper .step-date { font-size:0.75rem; color:var(--text3); margin-top:2px; }
+  .delivery-info-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+  @media (max-width:640px) { .delivery-info-grid { grid-template-columns:1fr; } }
+  .delivery-card {
+    background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-lg);
+    padding:20px; box-shadow:var(--shadow-sm);
+  }
+  .delivery-card h3 { font-size:1rem; margin-bottom:12px; }
+</style>
+
+<div id="delivery-terminal-banner">
+{% if order.status == 'rejected' %}
+<div class="alert alert-danger" style="margin-bottom:20px;">
+  <i class="ti ti-circle-x" style="font-size:18px;"></i>
+  <span>This pickup request was declined by the librarian{% if order.rejection_reason %}: {{ order.rejection_reason }}{% endif %}. Please return the book at the library counter, or try again.</span>
+</div>
+{% elif order.status == 'cancelled' %}
+<div class="alert alert-warning" style="margin-bottom:20px;">
+  <i class="ti ti-x" style="font-size:18px;"></i>
+  <span>This pickup request was cancelled.</span>
+</div>
+{% elif order.status == 'returned' %}
+<div class="alert alert-success" style="margin-bottom:20px;">
+  <i class="ti ti-circle-check" style="font-size:18px;"></i>
+  <span>This book has been received and checked in at the library.</span>
+</div>
+{% endif %}
+</div>
+
+{% set pipeline = [
+  ('requested', 'Requested', order.requested_date),
+  ('accepted', 'Accepted', order.accepted_date),
+  ('out_for_pickup', 'Out for Pickup', order.out_for_pickup_date),
+  ('picked_up', 'Picked Up', order.picked_up_date),
+  ('returned', 'Returned', order.returned_date),
+] %}
+{% set pipeline_keys = ['requested','accepted','out_for_pickup','picked_up','returned'] %}
+{% set current_index = pipeline_keys.index(order.status) if order.status in pipeline_keys else -1 %}
+
+<div id="delivery-stepper-wrap" {% if order.status in ('rejected','cancelled') %}style="display:none;"{% endif %}>
+<div class="delivery-stepper" id="delivery-stepper" data-order-id="{{ order.id }}"
+     data-status-url="{{ url_for('user.pickup_status', order_id=order.id) }}">
+  {% for step, label, step_date in pipeline %}
+  <div class="step {% if current_index >= 0 and loop.index0 <= current_index %}{% if loop.index0 == current_index %}current{% else %}done{% endif %}{% endif %}" data-step="{{ step }}">
+    <div class="step-dot"><i class="ti ti-check"></i></div>
+    <div class="step-label">{{ label }}</div>
+    <div class="step-date">{{ step_date or '' }}</div>
+  </div>
+  {% endfor %}
+</div>
+</div>
+
+<div class="delivery-info-grid">
+  <div class="delivery-card">
+    <h3><i class="ti ti-map-pin"></i> Pickup address</h3>
+    <p style="color:var(--text);font-weight:600;margin-bottom:4px;">{{ order.recipient_name }}</p>
+    <p style="color:var(--text2);margin-bottom:2px;">{{ order.phone }}</p>
+    <p style="color:var(--text2);margin-bottom:2px;">
+      {{ order.address_line1 }}{% if order.address_line2 %}, {{ order.address_line2 }}{% endif %}
+    </p>
+    <p style="color:var(--text2);">{{ order.city }}, {{ order.state }} — {{ order.pincode }}</p>
+    {% if order.landmark %}<p style="color:var(--text3);font-size:0.875rem;">Landmark: {{ order.landmark }}</p>{% endif %}
+  </div>
+
+  <div class="delivery-card" id="delivery-agent-card" {% if not order.agent %}style="display:none;"{% endif %}>
+    <h3><i class="ti ti-user"></i> Delivery agent</h3>
+    <p style="color:var(--text);font-weight:600;" id="delivery-agent-name">{{ order.agent.name if order.agent }}</p>
+    <p style="color:var(--text2);" id="delivery-agent-phone">{{ order.agent.phone if order.agent }}</p>
+  </div>
+</div>
+
+<div class="delivery-card" style="margin-bottom:20px;">
+  <h3><i class="ti ti-books"></i> Book being returned</h3>
+  <ul style="margin:0;padding-left:18px;color:var(--text2);">
+    {% for r in order.records %}
+    <li>{{ r.book.title if r.book else 'Unknown book' }}</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<div class="delivery-card" style="max-width:420px;">
+  <h3><i class="ti ti-receipt"></i> Pickup fee</h3>
+  {% if order.pickup_fee <= 0 %}
+  <p style="margin-bottom:0;">₹0 — <span class="badge badge-success">Free (delivery already paid)</span></p>
+  {% else %}
+  <p style="margin-bottom:12px;">₹{{ order.pickup_fee|int }} —
+    {% if order.fee_status == 'paid' %}<span class="badge badge-success">Paid</span>
+    {% else %}<span class="badge badge-warning">Unpaid</span>{% endif %}
+  </p>
+  {% if order.fee_status == 'unpaid' %}
+  <button type="button" class="btn btn-user btn-sm pay-now-btn" data-amount="{{ order.pickup_fee|int }}">
+    <i class="ti ti-credit-card"></i> Pay ₹{{ order.pickup_fee|int }}
+  </button>
+  {% endif %}
+  {% endif %}
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+(function () {
+  var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+  var orderId   = {{ order.id }};
+
+  // ── Live status polling → updates the stepper without a page reload ──
+  var stepperEl = document.getElementById('delivery-stepper');
+  if (stepperEl) {
+    startStatusPolling(stepperEl.dataset.statusUrl, function (data) {
+      var steps = stepperEl.querySelectorAll('.step');
+      steps.forEach(function (stepEl) {
+        var stepKey = stepEl.dataset.step;
+        var entry = (data.timeline || []).find(function (t) { return t.step === stepKey; });
+        stepEl.classList.remove('done', 'current');
+        if (entry && entry.done) {
+          stepEl.classList.add(stepKey === data.status ? 'current' : 'done');
+        }
+        var dateEl = stepEl.querySelector('.step-date');
+        if (dateEl) dateEl.textContent = (entry && entry.date) ? entry.date : '';
+      });
+
+      if (data.status === 'rejected' || data.status === 'cancelled') {
+        document.getElementById('delivery-stepper-wrap').style.display = 'none';
+      }
+
+      if (data.agent_name) {
+        var card = document.getElementById('delivery-agent-card');
+        if (card) {
+          card.style.display = '';
+          document.getElementById('delivery-agent-name').textContent = data.agent_name;
+          document.getElementById('delivery-agent-phone').textContent = data.agent_phone || '';
+        }
+      }
+    });
+  }
+
+  // ── Razorpay checkout for the pickup fee — same pattern as delivery ──
+  document.querySelectorAll('.pay-now-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { startPayment(btn); });
+  });
+
+  function startPayment(btn) {
+    setLoading(btn, true);
+    fetch('/user/pickups/' + orderId + '/pay/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.success) {
+          alert(data.error || 'Could not start payment.');
+          setLoading(btn, false);
+          return;
+        }
+        openCheckout(data, btn);
+      })
+      .catch(function () {
+        alert('Something went wrong starting the payment. Please try again.');
+        setLoading(btn, false);
+      });
+  }
+
+  function openCheckout(order, btn) {
+    var options = {
+      key:         order.key_id,
+      amount:      order.amount,
+      currency:    'INR',
+      name:        order.name,
+      description: order.description,
+      order_id:    order.order_id,
+      handler: function (response) { verifyPayment(response, btn); },
+      modal: { ondismiss: function () { setLoading(btn, false); } },
+      theme: { color: '#4361EE' }
+    };
+    var rzp = new Razorpay(options);
+    rzp.on('payment.failed', function () {
+      alert('Payment failed. Please try again.');
+      setLoading(btn, false);
+    });
+    rzp.open();
+  }
+
+  function verifyPayment(response, btn) {
+    fetch('/user/pickups/' + orderId + '/pay/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({
+        razorpay_order_id:   response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature:  response.razorpay_signature,
+      }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          window.location.reload();
+        } else {
+          alert(data.error || 'Payment could not be verified. If money was deducted, contact the library — your payment ID is ' + response.razorpay_payment_id + '.');
+          setLoading(btn, false);
+        }
+      })
+      .catch(function () {
+        alert('Payment succeeded but we could not confirm it right now. Contact the library with payment ID ' + response.razorpay_payment_id + '.');
+        setLoading(btn, false);
+      });
+  }
+
+  function setLoading(btn, loading) {
+    btn.disabled = loading;
+    btn.innerHTML = loading
+      ? '<i class="ti ti-loader-2"></i> Processing…'
+      : '<i class="ti ti-credit-card"></i> Pay ₹' + btn.dataset.amount;
+  }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'base_librarian.html' %}
+{% block page_title %}Membership Payments{% endblock %}
+{% block content %}
+
+<div class="table-wrap">
+  <div class="table-head">
+    <span class="table-head-title">Pending Payments</span>
+    <small style="color:var(--text3)">{{ pending|length }} record(s)</small>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>Member</th><th>Type</th><th>Tier</th><th>Amount (₹)</th><th>Raised on</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for p in pending %}
+        <tr>
+          <td style="color:var(--text);font-weight:500;">{{ p.user.name }}<br><small style="color:var(--text3);font-weight:400;">{{ p.user.formatted_id }}</small></td>
+          <td>{{ p.payment_type|capitalize }}</td>
+          <td><span class="badge badge-info">{{ p.membership_type|capitalize }}</span></td>
+          <td><span class="badge badge-danger">₹{{ p.amount|int }}</span></td>
+          <td>{{ p.issued_date }}</td>
+          <td>
+            <button type="button" onclick="openFormModal('{{ url_for('librarian.mark_membership_paid', payment_id=p.id) }}')" class="btn btn-success btn-sm"><i class="ti ti-check"></i> Mark paid</button>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty-td">No pending membership payments.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <div class="table-head">
+    <span class="table-head-title">Recent Payments</span>
+    <small style="color:var(--text3)">Last {{ paid|length }} payment(s)</small>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>Member</th><th>Type</th><th>Tier</th><th>Amount (₹)</th><th>Paid on</th><th>Collected by</th><th>Method</th></tr></thead>
+      <tbody>
+        {% for p in paid %}
+        <tr>
+          <td style="color:var(--text);font-weight:500;">{{ p.user.name }}<br><small style="color:var(--text3);font-weight:400;">{{ p.user.formatted_id }}</small></td>
+          <td>{{ p.payment_type|capitalize }}</td>
+          <td><span class="badge badge-info">{{ p.membership_type|capitalize }}</span></td>
+          <td>₹{{ p.amount|int }}</td>
+          <td>{{ p.paid_date }}</td>
+          <td>{{ p.collector.name if p.collector else '—' }}</td>
+          <td>
+            {% if p.payment_gateway %}<span class="badge badge-success">{{ p.payment_gateway|title }}</span>
+            {% else %}<span class="badge badge-info">{{ p.payment_method or '—' }}</span>{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="empty-td">No payments yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

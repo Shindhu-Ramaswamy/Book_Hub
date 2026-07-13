@@ -1,0 +1,41 @@
+{% extends 'base_admin.html' %}
+{% block page_title %}Librarians{% endblock %}
+{% block content %}
+<div class="table-wrap">
+  <div class="table-head" style="justify-content:flex-end;">
+    <button type="button" onclick="openFormModal('{{ url_for('admin.add_librarian') }}')" class="btn btn-sm" style="border-color:var(--teal);color:var(--teal);">
+      <i class="ti ti-plus"></i> Add librarian
+    </button>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Library code</th><th>Joined</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for lib in librarians %}
+        <tr>
+          <td><span class="badge badge-purple">{{ lib.formatted_id }}</span></td>
+          <td style="color:var(--text)">{{ lib.name }}</td>
+          <td>{{ lib.email }}</td>
+          <td>{{ lib.phone }}</td>
+          <td>{{ lib.library_code or '—' }}</td>
+          <td>{{ lib.joined_date }}</td>
+          <td>{% if lib.is_active %}<span class="badge badge-success">Active</span>{% else %}<span class="badge badge-danger">Disabled</span>{% endif %}</td>
+          <td>
+            <form method="POST" action="{{ url_for('admin.toggle_librarian', lib_id=lib.id) }}" onsubmit="return confirm('Toggle login access for {{ lib.name }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              {% if lib.is_active %}
+                <button type="submit" class="btn btn-sm btn-danger"><i class="ti ti-ban"></i> Disable</button>
+              {% else %}
+                <button type="submit" class="btn btn-sm btn-success"><i class="ti ti-check"></i> Enable</button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="empty-td">No librarians yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

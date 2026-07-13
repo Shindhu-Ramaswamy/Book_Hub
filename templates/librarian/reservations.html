@@ -1,0 +1,108 @@
+{% extends 'base_librarian.html' %}
+{% block page_title %}Reservations{% endblock %}
+{% block content %}
+
+{# ── Ready to collect ── #}
+<p class="section-label">Ready to collect ({{ ready|length }})</p>
+{% if ready %}
+<div class="table-wrap" style="margin-bottom:28px;">
+  <div class="table-head">
+    <span class="table-head-title">Waiting At Counter</span>
+    <small style="color:var(--text3)">These members need to collect their book before the hold expires</small>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Res. ID</th><th>Member</th><th>Book</th>
+          <th>Ready since</th><th>Expires in</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in ready %}
+        <tr>
+          <td><span class="badge badge-gray">RES-{{ '%03d'%r.id }}</span></td>
+          <td style="color:var(--text);font-weight:600;">
+            {{ r.user.name }}
+            <br><small style="color:var(--text3);font-weight:400;">{{ r.user.formatted_id }}</small>
+          </td>
+          <td style="color:var(--text);">
+            {{ r.book.title }}
+            <br><small style="color:var(--text3);">{{ r.book.isbn }}</small>
+          </td>
+          <td>{{ r.ready_at.strftime('%d %b %Y %H:%M') if r.ready_at else '—' }}</td>
+          <td>
+            {% if r.hours_left is not none %}
+              {% if r.hours_left <= 6 %}
+                <span class="badge badge-danger">{{ r.hours_left }}h left</span>
+              {% elif r.hours_left <= 24 %}
+                <span class="badge badge-warning">{{ r.hours_left }}h left</span>
+              {% else %}
+                <span class="badge badge-success">{{ r.hours_left }}h left</span>
+              {% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            <form method="POST" action="{{ url_for('librarian.fulfil_reservation', reservation_id=r.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-success btn-sm">
+                <i class="ti ti-check"></i> Issue book
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty-state" style="margin-bottom:24px;">
+  <i class="ti ti-circle-check"></i>
+  <p>No reservations waiting for collection right now.</p>
+</div>
+{% endif %}
+
+{# ── Queue ── #}
+<p class="section-label">Upcoming queue ({{ queued|length }})</p>
+{% if queued %}
+<div class="table-wrap">
+  <div class="table-head">
+    <span class="table-head-title">Waiting In Queue</span>
+    <small style="color:var(--text3)">These members will be auto-promoted when a copy becomes available</small>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr><th>Res. ID</th><th>Member</th><th>Book</th><th>Position</th><th>Queue size</th><th>Reserved on</th></tr>
+      </thead>
+      <tbody>
+        {% for r in queued %}
+        <tr>
+          <td><span class="badge badge-gray">RES-{{ '%03d'%r.id }}</span></td>
+          <td style="color:var(--text);font-weight:600;">
+            {{ r.user.name }}
+            <br><small style="color:var(--text3);font-weight:400;">{{ r.user.formatted_id }}</small>
+          </td>
+          <td style="color:var(--text);">{{ r.book.title }}</td>
+          <td><span class="badge badge-info">#{{ r.queue_position }}</span></td>
+          <td>
+            <span style="color:var(--text3);font-size:0.875rem;">
+              {{ r.book.active_reservation_count }} waiting
+            </span>
+          </td>
+          <td>{{ r.created_at.strftime('%d %b %Y') if r.created_at else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty-state">
+  <i class="ti ti-list"></i>
+  <p>No members in the reservation queue.</p>
+</div>
+{% endif %}
+
+{% endblock %}

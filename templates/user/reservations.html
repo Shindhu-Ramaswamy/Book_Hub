@@ -1,0 +1,131 @@
+{% extends 'base_user.html' %}
+{% block page_title %}My Reservations{% endblock %}
+{% block content %}
+
+{# ── Active reservations ── #}
+<p class="section-label">Active reservations ({{ active|length }})</p>
+{% if active %}
+<div class="table-wrap" style="margin-bottom:28px;">
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Book</th>
+          <th>Queue position</th>
+          <th>Status</th>
+          <th>Reserved on</th>
+          <th>Expires in</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in active %}
+        <tr>
+          <td style="color:var(--text);font-weight:600;">
+            {{ r.book.title }}
+            <br><small style="color:var(--text3);font-weight:400;">{{ r.book.author }}</small>
+          </td>
+          <td>
+            {% if r.status == 'ready' %}
+              <span class="badge badge-success">Ready to collect</span>
+            {% else %}
+              <span class="badge badge-info">#{{ r.queue_position }} in queue</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if r.status == 'ready' %}
+              <span class="badge badge-success">Ready</span>
+            {% else %}
+              <span class="badge badge-warning">Queued</span>
+            {% endif %}
+          </td>
+          <td>{{ r.created_at.strftime('%d %b %Y') if r.created_at else '—' }}</td>
+          <td>
+            {% if r.status == 'ready' and r.hours_left is not none %}
+              {% if r.hours_left <= 6 %}
+                <span class="badge badge-danger">{{ r.hours_left }}h left</span>
+              {% elif r.hours_left <= 24 %}
+                <span class="badge badge-warning">{{ r.hours_left }}h left</span>
+              {% else %}
+                <span class="badge badge-success">{{ r.hours_left }}h left</span>
+              {% endif %}
+            {% else %}
+              <span style="color:var(--text3);">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="POST" action="{{ url_for('user.cancel_reservation', reservation_id=r.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-danger btn-sm">
+                <i class="ti ti-x"></i> Cancel
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# Ready to collect alert ─ prominent banner #}
+{% set ready_list = active | selectattr('status', 'equalto', 'ready') | list %}
+{% if ready_list %}
+<div class="alert alert-success" style="margin-bottom:24px;">
+  <i class="ti ti-bell" style="font-size:18px;"></i>
+  <span>
+    <strong>{{ ready_list|length }} book{{ 's are' if ready_list|length != 1 else ' is' }} ready for collection!</strong>
+    Visit the library counter before the hold expires.
+  </span>
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state" style="margin-bottom:28px;">
+  <i class="ti ti-bookmark-off"></i>
+  <p>You have no active reservations.</p>
+  <a href="{{ url_for('user.book_list') }}" class="btn btn-user">Browse books</a>
+</div>
+{% endif %}
+
+{# ── Reservation history ── #}
+<p class="section-label">History ({{ history|length }})</p>
+{% if history %}
+<div class="table-wrap">
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr><th>Book</th><th>Reserved on</th><th>Status</th><th>Outcome</th></tr>
+      </thead>
+      <tbody>
+        {% for r in history %}
+        <tr>
+          <td style="color:var(--text);font-weight:600;">{{ r.book.title }}</td>
+          <td>{{ r.created_at.strftime('%d %b %Y') if r.created_at else '—' }}</td>
+          <td>
+            {% if r.status == 'fulfilled' %}<span class="badge badge-success">Fulfilled</span>
+            {% elif r.status == 'cancelled' %}<span class="badge badge-gray">Cancelled</span>
+            {% elif r.status == 'expired' %}<span class="badge badge-danger">Expired</span>
+            {% elif r.status == 'queued' %}<span class="badge badge-warning">Queued</span>
+            {% elif r.status == 'ready' %}<span class="badge badge-success">Ready</span>
+            {% else %}<span class="badge badge-gray">{{ r.status }}</span>{% endif %}
+          </td>
+          <td style="color:var(--text3);font-size:0.875rem;">
+            {% if r.status == 'fulfilled' %}Collected on {{ r.fulfilled_at.strftime('%d %b %Y') if r.fulfilled_at else '—' }}
+            {% elif r.status == 'cancelled' %}Cancelled on {{ r.cancelled_at.strftime('%d %b %Y') if r.cancelled_at else '—' }}
+            {% elif r.status == 'expired' %}Hold expired
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty-state">
+  <i class="ti ti-history"></i>
+  <p>No reservation history yet.</p>
+</div>
+{% endif %}
+{% endblock %}

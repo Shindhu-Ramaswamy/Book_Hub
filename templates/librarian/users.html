@@ -1,0 +1,33 @@
+{% extends 'base_librarian.html' %}
+{% block page_title %}Users List{% endblock %}
+{% block content %}
+<div class="table-wrap">
+  <div class="table-head">
+    <span class="table-head-title">All Members</span>
+    <small style="color:var(--text3)">{{ users|length }} member(s)</small>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>User ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th><th>Active borrows</th></tr></thead>
+      <tbody>
+        {% for u in users %}
+        <tr onclick="openFormModal('{{ url_for('librarian.user_detail', user_id=u.id) }}')" style="cursor:pointer;">
+          <td><span class="badge badge-purple">{{ u.formatted_id }}</span></td>
+          <td style="color:var(--text);font-weight:500;">{{ u.name }}</td>
+          <td>{{ u.email }}</td>
+          <td>{{ u.phone }}</td>
+          <td>{{ u.joined_date }}</td>
+          <td>
+            {% set active = u.transactions|selectattr('status','equalto','borrowed')|list|length %}
+            {% if active > 0 %}<span class="badge badge-warning">{{ active }} book(s)</span>
+            {% else %}<span class="badge badge-success">None</span>{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty-td">No members registered yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

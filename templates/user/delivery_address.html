@@ -1,0 +1,55 @@
+{% extends 'base_user.html' %}
+{% block page_title %}Home Delivery{% endblock %}
+{% block content %}
+
+<div class="table-wrap" style="margin-bottom:20px;">
+  <div class="table-head">
+    <span class="table-head-title">Books In This Order</span>
+    <small style="color:var(--text3)">{{ cart_items|length }} book(s)</small>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>Title</th><th>Author</th></tr></thead>
+      <tbody>
+        {% for item in cart_items %}
+        <tr>
+          <td style="color:var(--text);font-weight:500;">{{ item.book.title }}</td>
+          <td>{{ item.book.author }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div style="max-width:520px;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;box-shadow:var(--shadow-sm);">
+    <div class="alert alert-success" style="margin-bottom:20px;">
+      <i class="ti ti-truck-delivery" style="font-size:18px;"></i>
+      <span>Delivery fee for this order: <strong>₹{{ fee_preview|int }}</strong></span>
+    </div>
+    {% if current_user.has_saved_address %}
+    <p style="color:var(--text3);font-size:0.8rem;margin:-10px 0 16px;">Pre-filled from your saved address — edit anything below if needed.</p>
+    {% endif %}
+    <form method="POST" action="{{ url_for('user.delivery_address_form') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Recipient name</label><input type="text" name="recipient_name" value="{{ current_user.name }}" required autofocus></div>
+      <div class="form-group"><label>Phone</label><input type="tel" name="phone" value="{{ current_user.phone }}" required></div>
+      <div class="form-group"><label>Address line 1</label><input type="text" name="address_line1" value="{{ current_user.address_line1 or '' }}" required placeholder="House no., street"></div>
+      <div class="form-group"><label>Address line 2 (optional)</label><input type="text" name="address_line2" value="{{ current_user.address_line2 or '' }}"></div>
+      <div style="display:flex;gap:12px;">
+        <div class="form-group" style="flex:1;"><label>City</label><input type="text" name="city" value="{{ current_user.address_city or '' }}" required></div>
+        <div class="form-group" style="flex:1;"><label>State</label><input type="text" name="state" value="{{ current_user.address_state or '' }}" required></div>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <div class="form-group" style="flex:1;"><label>Pincode</label><input type="text" name="pincode" value="{{ current_user.address_pincode or '' }}" required></div>
+        <div class="form-group" style="flex:1;"><label>Landmark (optional)</label><input type="text" name="landmark" value="{{ current_user.address_landmark or '' }}"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button type="submit" class="btn btn-user"><i class="ti ti-truck-delivery"></i> Confirm delivery request</button>
+        <a href="{{ url_for('user.cart') }}" class="btn">Back to cart</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

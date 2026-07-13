@@ -1,0 +1,134 @@
+{% extends 'base_user.html' %}
+{% block page_title %}Browse Books{% endblock %}
+{% block content %}
+
+<form method="GET" action="{{ url_for('user.book_list') }}" style="max-width:560px;margin:0 auto 18px;">
+  {% for g in selected_genres %}<input type="hidden" name="genre" value="{{ g }}">{% endfor %}
+  <div style="display:flex;gap:10px;">
+    <div class="search-box" style="width:100%;border-radius:var(--radius);">
+      <i class="ti ti-search"></i>
+      <input type="text" name="q" placeholder="Search by title, author, or ISBN…" value="{{ search_q or '' }}">
+    </div>
+    <button type="submit" class="btn btn-librarian" style="background:var(--brand);color:#fff;">Search</button>
+    {% if search_q %}<a href="{{ url_for('user.book_list') }}" class="btn btn-sm">Clear</a>{% endif %}
+  </div>
+</form>
+
+<form method="GET" action="{{ url_for('user.book_list') }}" id="genre-form">
+  {% if search_q %}<input type="hidden" name="q" value="{{ search_q }}">{% endif %}
+  <div class="table-wrap" style="margin-bottom:18px;">
+    <div class="table-head">
+      <span class="table-head-title">Filter By Genre</span>
+      <small style="color:var(--text3)">Select up to 3</small>
+      {% if selected_genres %}
+        <a href="{{ url_for('user.book_list') }}" class="btn btn-sm" style="margin-left:8px;">Clear filters</a>
+      {% endif %}
+    </div>
+    <div style="padding:14px 18px;">
+      <div class="genre-chips">
+        {% for genre in genres %}
+        <label class="chip {% if genre in selected_genres %}selected{% endif %}">
+          <input type="checkbox" name="genre" value="{{ genre }}"
+                 {% if genre in selected_genres %}checked{% endif %}
+                 onchange="this.form.submit()">
+          {{ genre }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="browse-toolbar">
+  <div class="filter-row" style="margin-bottom:0;">
+    <a href="{{ url_for('user.book_list', q=search_q or None, genre=selected_genres, sort=sort, availability='all') }}"
+       class="filter-chip {% if availability == 'all' %}fc-active{% endif %}">All</a>
+    <a href="{{ url_for('user.book_list', q=search_q or None, genre=selected_genres, sort=sort, availability='available') }}"
+       class="filter-chip {% if availability == 'available' %}fc-active{% endif %}">Available</a>
+    <a href="{{ url_for('user.book_list', q=search_q or None, genre=selected_genres, sort=sort, availability='unavailable') }}"
+       class="filter-chip {% if availability == 'unavailable' %}fc-active{% endif %}">Unavailable</a>
+  </div>
+
+  <form method="GET" action="{{ url_for('user.book_list') }}">
+    {% if search_q %}<input type="hidden" name="q" value="{{ search_q }}">{% endif %}
+    {% for g in selected_genres %}<input type="hidden" name="genre" value="{{ g }}">{% endfor %}
+    {% if availability != 'all' %}<input type="hidden" name="availability" value="{{ availability }}">{% endif %}
+    <select name="sort" class="sort-select" onchange="this.form.submit()" aria-label="Sort by title">
+      <option value="title_asc" {% if sort == 'title_asc' %}selected{% endif %}>Title: A → Z</option>
+      <option value="title_desc" {% if sort == 'title_desc' %}selected{% endif %}>Title: Z → A</option>
+    </select>
+  </form>
+</div>
+
+<div class="table-head" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg) var(--radius-lg) 0 0;border-bottom:none;padding:14px 18px;margin-bottom:0;">
+  <span class="table-head-title">
+    {% if selected_genres %}{{ selected_genres|join(' · ') }}{% else %}All Books{% endif %}
+  </span>
+  <small style="color:var(--text3)">{{ books|length }} book(s)</small>
+</div>
+
+<div class="book-grid" style="background:var(--bg2);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);padding:18px;margin-bottom:0;">
+  {% for book in books %}
+  <div class="book-card">
+    {% if book.cover_url %}
+      <img class="book-cover-img" src="{{ book.cover_url }}" alt="{{ book.title }}" loading="lazy"
+           onclick="openFormModal('{{ url_for('user.book_details', book_id=book.id) }}')"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="book-cover-placeholder" style="display:none;" onclick="openFormModal('{{ url_for('user.book_details', book_id=book.id) }}')">
+        <i class="ti ti-book"></i><span>{{ book.title }}</span>
+      </div>
+    {% else %}
+      <div class="book-cover-placeholder" onclick="openFormModal('{{ url_for('user.book_details', book_id=book.id) }}')">
+        <i class="ti ti-book"></i><span>{{ book.title }}</span>
+      </div>
+    {% endif %}
+    <div class="book-card-body">
+      <div class="book-card-title" style="cursor:pointer;" onclick="openFormModal('{{ url_for('user.book_details', book_id=book.id) }}')">{{ book.title }}</div>
+      <div class="book-card-author">{{ book.author }}</div>
+      <div style="margin-bottom:6px;">
+        <span class="badge badge-info">{{ book.genre }}</span>
+        {% if book.available_quantity > 0 %}
+          <span class="badge badge-success" style="margin-left:4px;">{{ book.available_quantity }} left</span>
+        {% else %}
+          <span class="badge badge-danger" style="margin-left:4px;">Unavailable</span>
+        {% endif %}
+      </div>
+      <div class="book-card-actions">
+        {% if book.id in active_book_ids %}
+          <span class="badge badge-warning">Issued / Pending</span>
+        {% elif book.id in cart_book_ids %}
+          <form method="POST" action="{{ url_for('user.remove_from_cart', book_id=book.id) }}" class="js-preserve-scroll">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger btn-sm"><i class="ti ti-trash"></i> Remove</button>
+          </form>
+        {% elif book.available_quantity > 0 %}
+          <form method="POST" action="{{ url_for('user.add_to_cart', book_id=book.id) }}" class="js-preserve-scroll">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-user btn-sm"><i class="ti ti-plus"></i> Add</button>
+          </form>
+        {% elif book.id in reserve_ids %}
+          <span class="badge badge-info">In queue</span>
+        {% else %}
+          <form method="POST" action="{{ url_for('user.reserve_book', book_id=book.id) }}" class="js-preserve-scroll">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm" style="border-color:var(--purple);color:var(--purple);">
+              <i class="ti ti-bookmark"></i> Reserve
+            </button>
+          </form>
+          {% if book.active_reservation_count > 0 %}
+          <small style="color:var(--text3);font-size:0.72rem;display:block;margin-top:3px;">
+            {{ book.active_reservation_count }} waiting
+          </small>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state" style="grid-column:1/-1;">
+    <i class="ti ti-books"></i>
+    <p>No books found.</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,211 @@
+{% extends 'base_admin.html' %}
+{% block page_title %}Fine Management{% endblock %}
+{% block content %}
+
+{# ── Summary stats ── #}
+<div class="stat-grid" style="margin-bottom:24px;">
+  <div class="stat-card">
+    <div class="sc-label">Live overdue books</div>
+    <div class="sc-val red">{{ live_overdue|length }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-label">Total unpaid fines</div>
+    <div class="sc-val amber">₹{{ total_unpaid|int }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-label">Total collected</div>
+    <div class="sc-val green">₹{{ total_paid|int }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-label">Fine records</div>
+    <div class="sc-val brand">{{ all_fines|length }}</div>
+  </div>
+</div>
+
+{# ── Scheduler control ── #}
+<div class="table-wrap" style="margin-bottom:24px;">
+  <div class="table-head">
+    <span class="table-head-title">APScheduler — Automatic Fine Calculation</span>
+  </div>
+  <div style="padding:18px 20px;border-bottom:1px solid var(--border);">
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;">
+      <div style="flex:1;min-width:220px;">
+        <p style="font-size:0.9rem;color:var(--text2);margin-bottom:10px;line-height:1.6;">
+          Two background jobs run automatically:
+        </p>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:8px;">
+          <li style="display:flex;align-items:center;gap:10px;">
+            <span class="badge badge-success">Daily · 00:05</span>
+            <span style="font-size:0.875rem;color:var(--text2);">Scans all overdue books and creates / updates fine records</span>
+          </li>
+          <li style="display:flex;align-items:center;gap:10px;">
+            <span class="badge badge-info">Hourly</span>
+            <span style="font-size:0.875rem;color:var(--text2);">Updates amounts on existing unpaid fines so totals stay current</span>
+          </li>
+        </ul>
+      </div>
+      <div>
+        <p style="font-size:0.8125rem;color:var(--text3);margin-bottom:8px;">Run the fine check right now</p>
+        <form method="POST" action="{{ url_for('admin.run_fine_check_now') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-warning">
+            <i class="ti ti-player-play"></i> Run fine check now
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# Fine rules ─ pulled from config via live_overdue[0] if exists #}
+  <div style="padding:14px 20px;background:var(--bg3);display:flex;gap:24px;flex-wrap:wrap;">
+    <span style="font-size:0.8125rem;color:var(--text2);">
+      <strong style="color:var(--text);">Rate:</strong> ₹10 per overdue day
+    </span>
+    <span style="font-size:0.8125rem;color:var(--text2);">
+      <strong style="color:var(--text);">Grace period:</strong> 0 days
+    </span>
+    <span style="font-size:0.8125rem;color:var(--text2);">
+      <strong style="color:var(--text);">Cap:</strong> ₹500 per book
+    </span>
+    <span style="font-size:0.8125rem;color:var(--text2);">
+      <strong style="color:var(--text);">Borrow period:</strong> 30 days
+    </span>
+  </div>
+</div>
+
+{# ── Live overdue books (no fine record yet or still accruing) ── #}
+{% if live_overdue %}
+<p class="section-label">Currently overdue ({{ live_overdue|length }} book{{ 's' if live_overdue|length != 1 }})</p>
+<div class="table-wrap" style="margin-bottom:24px;">
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Record</th><th>Member</th><th>Book</th>
+          <th>Due date</th><th>Overdue days</th><th>Accrued fine</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in live_overdue %}
+        <tr>
+          <td><span class="badge badge-gray">BR-{{ '%03d'%r.id }}</span></td>
+          <td style="color:var(--text);font-weight:600;">
+            {{ r.user.name }}
+            <br><small style="color:var(--text3);font-weight:400;">{{ r.user.formatted_id }}</small>
+          </td>
+          <td style="color:var(--text);">{{ r.book.title }}</td>
+          <td>{{ r.due_date }}</td>
+          <td><span class="badge badge-danger">{{ r.overdue_days }} day{{ 's' if r.overdue_days != 1 }}</span></td>
+          <td><span class="badge badge-warning">₹{{ r.current_fine|int }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{# ── Scheduler run history ── #}
+{% if job_history %}
+<p class="section-label">Scheduler run history (last {{ [job_history.values()|map('list')|map('length')|sum, 50]|min }} events)</p>
+<div class="table-wrap" style="margin-bottom:28px;">
+  <div class="table-head">
+    <span class="table-head-title">Hook Event Log</span>
+    <small style="color:var(--text3)">Populated by EVENT_JOB_EXECUTED / ERROR / MISSED hooks in services/hooks.py</small>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>Job</th><th>Status</th><th>Scheduled at</th><th>Finished at</th><th>Detail</th></tr></thead>
+      <tbody>
+        {% for job_id, runs in job_history.items() %}
+          {% for run in runs|reverse %}
+          <tr>
+            <td><span class="badge badge-gray">{{ job_id }}</span></td>
+            <td>
+              {% if run.status == 'executed' %}<span class="badge badge-success">Executed</span>
+              {% elif run.status == 'error' %}<span class="badge badge-danger">Error</span>
+              {% elif run.status == 'missed' %}<span class="badge badge-warning">Missed</span>
+              {% elif run.status == 'max_instances' %}<span class="badge badge-warning">Skipped</span>
+              {% else %}<span class="badge badge-gray">{{ run.status }}</span>{% endif %}
+            </td>
+            <td style="font-size:0.8rem;color:var(--text3);">{{ run.scheduled_at or '—' }}</td>
+            <td style="font-size:0.8rem;color:var(--text3);">{{ run.finished_at or '—' }}</td>
+            <td style="font-size:0.8rem;color:var(--text3);">
+              {% if run.error %}
+                <span style="color:var(--red);">{{ run.error }}</span>
+              {% elif run.retval %}{{ run.retval }}
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{# ── All fine records ── #}
+<p class="section-label">All fine records ({{ all_fines|length }})</p>
+<div class="table-wrap">
+  <div class="table-head">
+    <span class="table-head-title">Fine Ledger</span>
+    <small style="color:var(--text3)">
+      Unpaid: {{ all_fines|selectattr('fine_status','equalto','unpaid')|list|length }} &nbsp;·&nbsp;
+      Paid: {{ all_fines|selectattr('fine_status','equalto','paid')|list|length }}
+    </small>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Fine ID</th><th>Member</th><th>Book</th><th>Type</th>
+          <th>Amount (₹)</th><th>Raised on</th>
+          <th>Paid on</th><th>Collected by</th><th>Method</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in all_fines %}
+        <tr>
+          <td><span class="badge badge-gray">FIN-{{ '%03d'%f.id }}</span></td>
+          <td style="color:var(--text);font-weight:600;">
+            {{ f.user.name }}
+            <br><small style="color:var(--text3);font-weight:400;">{{ f.user.formatted_id }}</small>
+          </td>
+          <td>{{ f.borrow_record.book.title if f.borrow_record and f.borrow_record.book else '—' }}</td>
+          <td>
+            {% if f.charge_type == 'damaged' %}<span class="badge badge-warning">Damage</span>
+            {% elif f.charge_type == 'lost' %}<span class="badge badge-danger">Lost</span>
+            {% else %}<span class="badge badge-gray">Overdue</span>{% endif %}
+          </td>
+          <td>
+            {% if f.fine_status == 'unpaid' %}
+              <span class="badge badge-danger">₹{{ f.amount|int }}</span>
+            {% else %}
+              <span class="badge badge-success">₹{{ f.amount|int }}</span>
+            {% endif %}
+          </td>
+          <td>{{ f.issued_date }}</td>
+          <td>{{ f.paid_date or '—' }}</td>
+          <td>{{ f.collector.name if f.collector else '—' }}</td>
+          <td>
+            {% if f.payment_method %}
+              <span class="badge badge-info">{{ f.payment_method }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if f.fine_status == 'paid' %}
+              <span class="badge badge-success">Paid</span>
+            {% else %}
+              <span class="badge badge-danger">Unpaid</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" class="empty-td">No fine records yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

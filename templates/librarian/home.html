@@ -1,0 +1,30 @@
+{% extends 'base_librarian.html' %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="stat-grid">
+  <div class="stat-card"><div class="sc-label">Members</div><div class="sc-val blue">{{ total_members }}</div></div>
+  <div class="stat-card"><div class="sc-label">Active issues</div><div class="sc-val green">{{ active_issues }}</div></div>
+  <div class="stat-card"><div class="sc-label">Pending requests</div><div class="sc-val amber">{{ pending_requests }}</div></div>
+  <div class="stat-card"><div class="sc-label">Pending deliveries</div><div class="sc-val amber">{{ pending_deliveries }}</div></div>
+  <div class="stat-card"><div class="sc-label">Pending pickups</div><div class="sc-val amber">{{ pending_pickups }}</div></div>
+  <div class="stat-card"><div class="sc-label">Unpaid fines</div><div class="sc-val red">{{ unpaid_fines }}</div></div>
+  <div class="stat-card"><div class="sc-label">Damaged</div><div class="sc-val">{{ damaged_count }}</div></div>
+</div>
+
+<p class="section-label">Book inventory</p>
+<div class="dd-menu" style="margin-bottom:20px;">
+  <div class="dd-item"><i class="ti ti-books"></i>Total books<span class="dd-count blue">{{ total_books }}</span></div>
+  <div class="dd-item"><i class="ti ti-circle-check"></i>Available<span class="dd-count green">{{ available_books }}</span></div>
+  <div class="dd-item"><i class="ti ti-ban"></i>Unavailable (qty 0)<span class="dd-count red">{{ unavailable_books }}</span></div>
+  <div class="dd-item"><i class="ti ti-arrows-exchange"></i>Books issued<span class="dd-count amber">{{ books_issued }}</span></div>
+</div>
+
+<p class="section-label">Quick actions</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap;">
+  <a href="{{ url_for('librarian.requests') }}" class="btn btn-warning"><i class="ti ti-clipboard-list"></i> View requests</a>
+  <a href="{{ url_for('librarian.deliveries', status='requested') }}" class="btn btn-warning"><i class="ti ti-truck-delivery"></i> Delivery requests</a>
+  <a href="{{ url_for('librarian.pickups', status='requested') }}" class="btn btn-warning"><i class="ti ti-package-export"></i> Pickup requests</a>
+  <a href="{{ url_for('librarian.issued_books') }}" class="btn btn-info"><i class="ti ti-arrows-exchange"></i> Transactions</a>
+  <a href="{{ url_for('librarian.add_book') }}" class="btn btn-librarian"><i class="ti ti-plus"></i> Add book</a>
+</div>
+{% endblock %}

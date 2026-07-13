@@ -1,0 +1,12 @@
+{% extends 'base_user.html' %}
+{% block page_title %}Notifications{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:20px;">
+  <h2 style="font-size:1.25rem;font-weight:700;color:var(--text);margin-bottom:2px;">Notifications</h2>
+  <p style="font-size:0.875rem;color:var(--text3);">{{ notifs|length }} total</p>
+</div>
+
+{% include '_notifications_body.html' %}
+
+{% endblock %}

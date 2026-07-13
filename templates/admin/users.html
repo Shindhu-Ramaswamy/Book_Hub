@@ -1,0 +1,28 @@
+{% extends 'base_admin.html' %}
+{% block page_title %}Members{% endblock %}
+{% block content %}
+<div class="table-wrap">
+  <div class="table-head" style="justify-content:flex-end;">
+    <small style="color:var(--text3)">{{ users|length }} member(s)</small>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td><span class="badge badge-purple">{{ u.formatted_id }}</span></td>
+          <td style="color:var(--text)">{{ u.name }}</td>
+          <td>{{ u.email }}</td>
+          <td>{{ u.phone }}</td>
+          <td>{{ u.joined_date }}</td>
+          <td>{% if u.is_active %}<span class="badge badge-success">Active</span>{% else %}<span class="badge badge-danger">Inactive</span>{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty-td">No members registered yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends 'base_librarian.html' %}
+{% block page_title %}Mark Pickup Fee As Paid{% endblock %}
+{% block content %}
+<div style="max-width:480px;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;box-shadow:var(--shadow-sm);">
+    <p style="margin-bottom:8px;">Member: <strong style="color:var(--text);">{{ order.user.name }}</strong></p>
+    <p style="margin-bottom:16px;">Pickup fee: <strong style="color:var(--red);">₹{{ order.pickup_fee|int }}</strong></p>
+    <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label>Payment method</label>
+        <select name="payment_method" required>
+          {% for m in payment_methods %}<option value="{{ m }}">{{ m|capitalize }}</option>{% endfor %}
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button type="submit" class="btn btn-success">Confirm payment</button>
+        <a href="{{ url_for('librarian.pickup_detail', order_id=order.id) }}" class="btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends 'base_admin.html' %}
+{% block page_title %}Add Librarian{% endblock %}
+{% block content %}
+<div style="max-width:520px;margin:0 auto;">
+  <div style="background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:24px;">
+    <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Full name</label><input type="text" name="name" required placeholder="Librarian name"></div>
+      <div class="form-group"><label>Email</label><input type="email" name="email" required placeholder="lib@library.com"></div>
+      <div class="form-group"><label>Phone</label><input type="tel" name="phone" required placeholder="10-digit number"></div>
+      <div class="form-group"><label>Library code</label><input type="text" name="library_code" required placeholder="e.g. LIB-MAIN-01"></div>
+      <div class="form-group"><label>Password</label><input type="password" name="password" required placeholder="Create a password"></div>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button type="submit" class="btn" style="background:var(--teal);color:#111;border-color:var(--teal);">Create librarian</button>
+        <a href="{{ url_for('admin.librarians') }}" class="btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

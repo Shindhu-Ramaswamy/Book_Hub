@@ -1,0 +1,40 @@
+{% extends 'base_librarian.html' %}
+{% block page_title %}Requests{% endblock %}
+{% block content %}
+<div class="table-wrap">
+  <div class="table-head" style="justify-content:flex-end;">
+    <small style="color:var(--text3)">{{ pending|length }} pending</small>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>#</th><th>Member</th><th>Book</th><th>Genre</th><th>Available qty</th><th>Requested on</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for r in pending %}
+        <tr>
+          <td><span class="badge badge-gray">{{ r.id }}</span></td>
+          <td style="color:var(--text);font-weight:500;">{{ r.user.name }}<br><small style="color:var(--text3);font-weight:400;">{{ r.user.formatted_id }}</small></td>
+          <td style="color:var(--text);">{{ r.book.title }}<br><small style="color:var(--text3);">{{ r.book.isbn }}</small></td>
+          <td><span class="badge badge-info">{{ r.book.genre }}</span></td>
+          <td>{% if r.book.available_quantity > 0 %}<span class="badge badge-success">{{ r.book.available_quantity }}</span>{% else %}<span class="badge badge-danger">0 — cannot approve</span>{% endif %}</td>
+          <td>{{ r.request_date or '—' }}</td>
+          <td style="display:flex;gap:8px;flex-wrap:wrap;">
+            {% if r.book.available_quantity > 0 %}
+            <form method="POST" action="{{ url_for('librarian.approve_request', record_id=r.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-success btn-sm"><i class="ti ti-check"></i> Accept</button>
+            </form>
+            {% endif %}
+            <form method="POST" action="{{ url_for('librarian.reject_request', record_id=r.id) }}" onsubmit="confirmActionForm(event, this, 'Confirm rejection of this borrow request?', 'Yes, reject')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-danger btn-sm"><i class="ti ti-x"></i> Reject</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="empty-td">No pending requests.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+<button type="button" onclick="closeFormModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;line-height:1;"><i class="ti ti-x"></i></button>
+
+<div style="margin-bottom:18px;">
+  <h3 style="margin-bottom:2px;">Notifications</h3>
+  <p style="font-size:0.875rem;color:var(--text3);">{{ notifs|length }} total</p>
+</div>
+
+{% include '_notifications_body.html' %}
+
+{% if total_count and total_count > 5 %}
+<div style="text-align:center;margin-top:16px;">
+  <a href="{{ url_for('librarian.notifications') }}" class="btn btn-sm" style="display:inline-flex;">
+    View more <i class="ti ti-chevron-down"></i>
+  </a>
+</div>
+{% endif %}

@@ -1,0 +1,23 @@
+{% extends 'base_librarian.html' %}
+{% block page_title %}Profile{% endblock %}
+{% block content %}
+<div style="max-width:480px;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;margin-bottom:16px;text-align:center;box-shadow:var(--shadow-sm);">
+    <div class="profile-av-circle lib" style="margin:0 auto 12px;">{{ current_user.name[:2].upper() }}</div>
+    <div class="profile-name">{{ current_user.name }}</div>
+    <div class="profile-id">{{ current_user.formatted_id }} · Librarian</div>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;box-shadow:var(--shadow-sm);">
+    <form method="POST" action="{{ url_for('librarian.profile') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Full name</label><input type="text" name="name" value="{{ current_user.name }}" required></div>
+      <div class="form-group"><label>Email</label><input type="email" name="email" value="{{ current_user.email }}" required></div>
+      <div class="form-group"><label>Phone</label><input type="tel" name="phone" value="{{ current_user.phone }}" required></div>
+      <div class="form-group"><label>Library code</label><input type="text" value="{{ current_user.library_code }}" disabled></div>
+      <div class="form-group"><label>Joined</label><input type="text" value="{{ current_user.joined_date }}" disabled></div>
+      <button type="submit" class="btn btn-librarian btn-block" style="margin-bottom:10px;">Save changes</button>
+    </form>
+    <a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-block">Sign out</a>
+  </div>
+</div>
+{% endblock %}

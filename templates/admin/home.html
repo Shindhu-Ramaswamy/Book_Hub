@@ -1,0 +1,28 @@
+{% extends 'base_admin.html' %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="stat-grid">
+  <div class="stat-card"><div class="sc-label">Total members</div><div class="sc-val amber">{{ total_members }}</div></div>
+  <div class="stat-card"><div class="sc-label">Librarians</div><div class="sc-val blue">{{ total_librarians }}</div></div>
+  <div class="stat-card"><div class="sc-label">Total books</div><div class="sc-val teal">{{ total_books }}</div></div>
+  <div class="stat-card"><div class="sc-label">Active issues</div><div class="sc-val">{{ active_issues }}</div></div>
+  <div class="stat-card"><div class="sc-label">Unpaid fines</div><div class="sc-val coral">{{ unpaid_fines }}</div></div>
+  <div class="stat-card"><div class="sc-label">Overdue</div><div class="sc-val coral">{{ overdue_count }}</div></div>
+</div>
+
+<p class="section-label">Quick actions</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap;">
+  <a href="{{ url_for('admin.add_librarian') }}" class="btn" style="border-color:var(--teal);color:var(--teal);">
+    <i class="ti ti-plus"></i> Add librarian
+  </a>
+  <a href="{{ url_for('admin.users') }}" class="btn">
+    <i class="ti ti-users"></i> View all members
+  </a>
+  <a href="{{ url_for('admin.books') }}" class="btn">
+    <i class="ti ti-books"></i> View all books
+  </a>
+  <a href="{{ url_for('admin.fines') }}" class="btn" style="border-color:var(--amber);color:var(--amber);">
+    <i class="ti ti-receipt-tax"></i> Fine management
+  </a>
+</div>
+{% endblock %}

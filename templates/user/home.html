@@ -1,0 +1,53 @@
+{% extends 'base_user.html' %}
+{% block page_title %}Home{% endblock %}
+{% block content %}
+
+<div class="stat-grid">
+  <div class="stat-card"><div class="sc-label">Books borrowed</div><div class="sc-val brand">{{ active_borrows }} / {{ current_user.max_books }}</div></div>
+  <div class="stat-card"><div class="sc-label">Reserved books</div><div class="sc-val purple">{{ reserved_books }}</div></div>
+  <div class="stat-card"><div class="sc-label">Pending fine</div><div class="sc-val {{ 'red' if pending_fine > 0 else '' }}">₹{{ pending_fine|int }}</div></div>
+  <div class="stat-card"><div class="sc-label">Borrow period</div><div class="sc-val">{{ current_user.borrow_days }} days</div></div>
+</div>
+
+{% if not current_user.membership_active %}
+<div class="alert alert-danger">
+  <i class="ti ti-id-badge-2"></i>
+  Your membership payment is due — you can't borrow or reserve books until it's cleared.
+  <a href="{{ url_for('user.membership') }}" style="text-decoration:underline;font-weight:600;">Pay now</a>
+</div>
+{% endif %}
+
+{% if best_books %}
+<p class="section-label">Most popular books</p>
+<div class="book-grid">
+  {% for book in best_books %}
+  <div class="book-card">
+    {% if book.cover_url %}
+      <img class="book-cover-img" src="{{ book.cover_url }}" alt="{{ book.title }}" loading="lazy"
+           onclick="openFormModal('{{ url_for('user.book_details', book_id=book.id) }}')"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="book-cover-placeholder" style="display:none;" onclick="openFormModal('{{ url_for('user.book_details', book_id=book.id) }}')">
+        <i class="ti ti-book"></i><span>{{ book.title }}</span>
+      </div>
+    {% else %}
+      <div class="book-cover-placeholder" onclick="openFormModal('{{ url_for('user.book_details', book_id=book.id) }}')">
+        <i class="ti ti-book"></i><span>{{ book.title }}</span>
+      </div>
+    {% endif %}
+    <div class="book-card-body">
+      <div class="book-card-title" style="cursor:pointer;" onclick="openFormModal('{{ url_for('user.book_details', book_id=book.id) }}')">{{ book.title }}</div>
+      <div class="book-card-author">{{ book.author }}</div>
+      <span class="badge badge-info" style="font-size:0.65rem;">{{ book.genre }}</span>
+      <span class="badge badge-success" style="font-size:0.65rem;margin-left:4px;">{{ book.lifetime_issued }}x issued</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <i class="ti ti-books"></i>
+  <p>No popular books yet — start borrowing!</p>
+  <a href="{{ url_for('user.book_list') }}" class="btn btn-user">Browse catalog</a>
+</div>
+{% endif %}
+{% endblock %}

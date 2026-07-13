@@ -1,0 +1,98 @@
+{% extends 'base_librarian.html' %}
+{% block page_title %}Return Inspection{% endblock %}
+{% block content %}
+<div style="max-width:600px;margin:0 auto;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;box-shadow:var(--shadow-sm);">
+
+    <div style="margin-bottom:20px;">
+      <p style="color:var(--text3);font-size:0.8rem;margin-bottom:4px;">BR-{{ '%03d'%record.id }} &nbsp;·&nbsp; {{ record.user.name }} ({{ record.user.formatted_id }})</p>
+      <p style="font-size:1.05rem;font-weight:600;color:var(--text);margin-bottom:4px;">{{ record.book.title }}</p>
+      {% if record.pickup_order_id %}
+      <span class="badge badge-info"><i class="ti ti-truck"></i> via Return Pickup #{{ record.pickup_order_id }}</span>
+      {% endif %}
+      <p style="color:var(--text3);font-size:0.85rem;">
+        Due {{ record.due_date }}
+        {% if record.is_overdue %}
+          — <span class="badge badge-danger">Overdue {{ record.overdue_days }}d · ₹{{ record.current_fine|int }} fine</span>
+        {% else %}
+          — <span class="badge badge-success">On time</span>
+        {% endif %}
+      </p>
+    </div>
+
+    <form method="POST" action="{{ url_for('librarian.return_book', record_id=record.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label style="display:block;margin-bottom:8px;font-weight:600;color:var(--text);font-size:0.85rem;">Book condition</label>
+
+      <div id="condition-cards" class="condition-cards">
+        <label class="condition-card" data-cond="good">
+          <input type="radio" name="condition" value="good" checked>
+          <i class="ti ti-circle-check"></i>
+          <span>Good</span>
+        </label>
+        <label class="condition-card" data-cond="damaged">
+          <input type="radio" name="condition" value="damaged">
+          <i class="ti ti-alert-triangle"></i>
+          <span>Damaged</span>
+        </label>
+        <label class="condition-card" data-cond="lost">
+          <input type="radio" name="condition" value="lost">
+          <i class="ti ti-file-x"></i>
+          <span>Lost</span>
+        </label>
+      </div>
+
+      <div id="charge-fields" style="display:none;">
+        <div class="form-group">
+          <label>Charge amount (₹)</label>
+          <input type="number" name="charge_amount" id="charge-amount" min="0" step="1">
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <input type="text" name="notes" placeholder="Describe the damage, or how it was lost…">
+        </div>
+      </div>
+
+      <p style="color:var(--text3);font-size:0.78rem;margin:-6px 0 18px;">
+        Overdue fine (if any) is calculated automatically and applies regardless of condition.
+      </p>
+
+      <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn btn-warning"><i class="ti ti-corner-down-left"></i> Confirm return</button>
+        <a href="{{ url_for('librarian.issued_books') }}" class="btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  var DEFAULTS = { damaged: {{ damage_default }}, lost: {{ lost_default }} };
+  var cards       = document.querySelectorAll('.condition-card');
+  var chargeBlock = document.getElementById('charge-fields');
+  var chargeInput = document.getElementById('charge-amount');
+
+  function setActive(cond) {
+    cards.forEach(function (c) {
+      c.classList.toggle('active', c.dataset.cond === cond);
+    });
+    if (cond === 'damaged' || cond === 'lost') {
+      chargeBlock.style.display = 'block';
+      chargeInput.value = DEFAULTS[cond];
+    } else {
+      chargeBlock.style.display = 'none';
+    }
+  }
+
+  // Listen on the radio's own 'change' event (not just clicks on the
+  // label) so this responds correctly to keyboard/arrow-key selection
+  // too, not only mouse clicks.
+  cards.forEach(function (c) {
+    var input = c.querySelector('input');
+    input.addEventListener('change', function () { setActive(c.dataset.cond); });
+  });
+
+  setActive('good');
+})();
+</script>
+{% endblock %}

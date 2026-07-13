@@ -1,0 +1,68 @@
+{% extends 'base_user.html' %}
+{% block page_title %}Search{% endblock %}
+{% block content %}
+<div class="table-wrap" style="margin-bottom:18px;">
+  <div class="table-head">
+    <span class="table-head-title">{% if query %}Results for "{{ query }}"{% else %}Search Books{% endif %}</span>
+    <small style="color:var(--text3)">{{ books|length }} result(s)</small>
+  </div>
+  <div style="padding:14px 18px;border-bottom:1px solid var(--border);">
+    <form method="GET" action="{{ url_for('user.search') }}" style="display:flex;gap:10px;max-width:460px;">
+      <div class="search-box" style="width:100%;border-radius:var(--radius);">
+        <i class="ti ti-search"></i>
+        <input type="text" name="q" placeholder="Search by title, author, genre…" value="{{ query or '' }}" autofocus>
+      </div>
+      <button type="submit" class="btn btn-user">Search</button>
+    </form>
+  </div>
+
+  {% if books %}
+  <div class="book-grid" style="padding:18px;">
+    {% for book in books %}
+    <div class="book-card">
+      {% if book.cover_url %}
+        <img class="book-cover-img" src="{{ book.cover_url }}" alt="{{ book.title }}" loading="lazy"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="book-cover-placeholder" style="display:none;"><i class="ti ti-book"></i><span>{{ book.title }}</span></div>
+      {% else %}
+        <div class="book-cover-placeholder"><i class="ti ti-book"></i><span>{{ book.title }}</span></div>
+      {% endif %}
+      <div class="book-card-body">
+        <div class="book-card-title">{{ book.title }}</div>
+        <div class="book-card-author">{{ book.author }}</div>
+        <div style="margin-bottom:6px;">
+          <span class="badge badge-info">{{ book.genre }}</span>
+          {% if book.available_quantity > 0 %}
+            <span class="badge badge-success" style="margin-left:4px;">{{ book.available_quantity }} left</span>
+          {% else %}
+            <span class="badge badge-danger" style="margin-left:4px;">Unavailable</span>
+          {% endif %}
+        </div>
+        <div class="book-card-actions">
+          {% if book.id in active_book_ids %}
+            <span class="badge badge-warning">Issued</span>
+          {% elif book.id in cart_book_ids %}
+            <form method="POST" action="{{ url_for('user.remove_from_cart', book_id=book.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-danger btn-sm"><i class="ti ti-trash"></i> Remove</button>
+            </form>
+          {% elif book.available_quantity > 0 %}
+            <form method="POST" action="{{ url_for('user.add_to_cart', book_id=book.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-user btn-sm"><i class="ti ti-plus"></i> Add</button>
+            </form>
+          {% else %}
+            <span style="font-size:0.7rem;color:var(--text3);">Unavailable</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% elif query %}
+  <div class="empty-td">No books found for "{{ query }}".</div>
+  {% else %}
+  <div class="empty-td">Enter a search term above.</div>
+  {% endif %}
+</div>
+{% endblock %}

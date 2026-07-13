@@ -1,0 +1,56 @@
+<button type="button" onclick="closeFormModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;line-height:1;"><i class="ti ti-x"></i></button>
+
+<div style="text-align:center;margin-bottom:20px;">
+  <div class="profile-av-circle lib">{{ member.name[:2].upper() }}</div>
+  <div class="profile-name">{{ member.name }}</div>
+  <div class="profile-id">{{ member.formatted_id }} · Member</div>
+</div>
+
+<div class="profile-tier-box {% if member.membership_type == 'membership' %}tier-premium{% endif %}">
+  <span class="profile-tier-label">
+    {% if member.membership_type == 'membership' %}
+    <i class="ti ti-crown"></i> Membership
+    {% else %}
+    <i class="ti ti-id-badge-2"></i> Basic
+    {% endif %}
+  </span>
+  {% if member.membership_active %}
+  <span class="badge badge-success">Active</span>
+  {% else %}
+  <span class="badge badge-danger">{% if member.membership_paid_until %}Expired{% else %}Unpaid{% endif %}</span>
+  {% endif %}
+</div>
+
+<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <i class="ti ti-phone" style="font-size:20px;color:var(--text3);width:24px;"></i>
+    <span style="color:var(--text);">{{ member.phone }}</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <i class="ti ti-mail" style="font-size:20px;color:var(--text3);width:24px;"></i>
+    <span style="color:var(--text);">{{ member.email }}</span>
+  </div>
+</div>
+
+<div class="stat-grid" style="grid-template-columns:1fr 1fr;margin-bottom:20px;">
+  <div class="stat-card" style="text-align:center;">
+    <div style="font-size:1.5rem;font-weight:700;color:var(--text);">{{ borrowed|length }}</div>
+    <div style="font-size:0.8125rem;color:var(--text3);">Books borrowed</div>
+  </div>
+  <div class="stat-card" style="text-align:center;">
+    <div style="font-size:1.5rem;font-weight:700;color:{{ 'var(--red)' if pending_fine > 0 else 'var(--text)' }};">₹{{ pending_fine|int }}</div>
+    <div style="font-size:0.8125rem;color:var(--text3);">Pending fine</div>
+  </div>
+</div>
+
+{% if borrowed %}
+<p class="section-label" style="margin-top:0;">Currently borrowed</p>
+<div style="display:flex;flex-direction:column;gap:8px;">
+  {% for t in borrowed %}
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg3);border-radius:var(--radius);">
+    <span style="color:var(--text);font-weight:500;font-size:0.875rem;">{{ t.book.title }}</span>
+    <span style="font-size:0.75rem;color:{{ 'var(--red)' if t.is_overdue else 'var(--text3)' }};">Due {{ t.due_date }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

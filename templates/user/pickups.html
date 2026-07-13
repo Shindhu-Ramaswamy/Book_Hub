@@ -1,0 +1,173 @@
+{% extends 'base_user.html' %}
+{% block page_title %}My Return Pickups{% endblock %}
+{% block content %}
+
+{% macro status_badge(status) %}
+  {% if status == 'returned' %}<span class="badge badge-success">Returned</span>
+  {% elif status == 'rejected' %}<span class="badge badge-danger">Rejected</span>
+  {% elif status == 'cancelled' %}<span class="badge badge-gray">Cancelled</span>
+  {% elif status == 'out_for_pickup' %}<span class="badge badge-warning">Out for pickup</span>
+  {% elif status == 'requested' %}<span class="badge badge-info">Awaiting acceptance</span>
+  {% else %}<span class="badge badge-info">{{ status|replace('_',' ')|title }}</span>{% endif %}
+{% endmacro %}
+
+<p class="section-label">Active pickups ({{ active|length }})</p>
+{% if active %}
+<div class="table-wrap" style="margin-bottom:28px;">
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>Order</th><th>Book</th><th>Status</th><th>Fee</th><th>Requested on</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for o in active %}
+        <tr>
+          <td><span class="badge badge-gray">PU-{{ '%03d'%o.id }}</span></td>
+          <td style="color:var(--text);">{{ o.records[0].book.title if o.records and o.records[0].book else '—' }}</td>
+          <td>{{ status_badge(o.status) }}</td>
+          <td>
+            {% if o.pickup_fee <= 0 %}<span class="badge badge-success">Free</span>
+            {% else %}
+              ₹{{ o.pickup_fee|int }}
+              {% if o.fee_status == 'paid' %}<span class="badge badge-success">Paid</span>
+              {% else %}<span class="badge badge-warning">Unpaid</span>{% endif %}
+            {% endif %}
+          </td>
+          <td>{{ o.requested_date or '—' }}</td>
+          <td style="display:flex;gap:8px;flex-wrap:wrap;">
+            {% if o.fee_status == 'unpaid' %}
+            <button type="button" class="btn btn-librarian btn-sm pay-now-btn" data-order-id="{{ o.id }}" data-amount="{{ o.pickup_fee|int }}">
+              <i class="ti ti-credit-card"></i> Pay ₹{{ o.pickup_fee|int }}
+            </button>
+            {% endif %}
+            <a href="{{ url_for('user.pickup_tracking', order_id=o.id) }}" class="btn btn-user btn-sm"><i class="ti ti-map-pin"></i> Track</a>
+            {% if o.status in ('requested','accepted') %}
+            <form method="POST" action="{{ url_for('user.cancel_pickup', order_id=o.id) }}" onsubmit="confirmActionForm(event, this, 'Cancel this return pickup?', 'Yes, cancel')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-danger btn-sm"><i class="ti ti-x"></i> Cancel</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty-state" style="margin-bottom:28px;">
+  <i class="ti ti-package-export"></i>
+  <p>You have no active return pickups.</p>
+  <a href="{{ url_for('user.my_books') }}" class="btn btn-user">My Books</a>
+</div>
+{% endif %}
+
+<p class="section-label">History ({{ history|length }})</p>
+{% if history %}
+<div class="table-wrap">
+  <div class="table-responsive">
+    <table>
+      <thead><tr><th>Order</th><th>Book</th><th>Status</th><th>Fee</th><th>Requested on</th></tr></thead>
+      <tbody>
+        {% for o in history %}
+        <tr>
+          <td><span class="badge badge-gray">PU-{{ '%03d'%o.id }}</span></td>
+          <td style="color:var(--text);">{{ o.records[0].book.title if o.records and o.records[0].book else '—' }}</td>
+          <td>{{ status_badge(o.status) }}</td>
+          <td>{% if o.pickup_fee <= 0 %}<span class="badge badge-success">Free</span>{% else %}₹{{ o.pickup_fee|int }}{% endif %}</td>
+          <td>{{ o.requested_date or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty-state">
+  <i class="ti ti-history"></i>
+  <p>No pickup history yet.</p>
+</div>
+{% endif %}
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+(function () {
+  var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+  document.querySelectorAll('.pay-now-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { startPayment(btn.dataset.orderId, btn); });
+  });
+
+  function startPayment(orderId, btn) {
+    setLoading(btn, true);
+    fetch('/user/pickups/' + orderId + '/pay/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.success) {
+          alert(data.error || 'Could not start payment.');
+          setLoading(btn, false);
+          return;
+        }
+        openCheckout(orderId, data, btn);
+      })
+      .catch(function () {
+        alert('Something went wrong starting the payment. Please try again.');
+        setLoading(btn, false);
+      });
+  }
+
+  function openCheckout(orderId, order, btn) {
+    var options = {
+      key:         order.key_id,
+      amount:      order.amount,
+      currency:    'INR',
+      name:        order.name,
+      description: order.description,
+      order_id:    order.order_id,
+      handler: function (response) { verifyPayment(orderId, response, btn); },
+      modal: { ondismiss: function () { setLoading(btn, false); } },
+      theme: { color: '#4361EE' }
+    };
+    var rzp = new Razorpay(options);
+    rzp.on('payment.failed', function () {
+      alert('Payment failed. Please try again.');
+      setLoading(btn, false);
+    });
+    rzp.open();
+  }
+
+  function verifyPayment(orderId, response, btn) {
+    fetch('/user/pickups/' + orderId + '/pay/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({
+        razorpay_order_id:   response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature:  response.razorpay_signature,
+      }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          window.location.reload();
+        } else {
+          alert(data.error || 'Payment could not be verified. If money was deducted, contact the library — your payment ID is ' + response.razorpay_payment_id + '.');
+          setLoading(btn, false);
+        }
+      })
+      .catch(function () {
+        alert('Payment succeeded but we could not confirm it right now. Contact the library with payment ID ' + response.razorpay_payment_id + '.');
+        setLoading(btn, false);
+      });
+  }
+
+  function setLoading(btn, loading) {
+    btn.disabled = loading;
+    btn.innerHTML = loading
+      ? '<i class="ti ti-loader-2"></i> Processing…'
+      : '<i class="ti ti-credit-card"></i> Pay ₹' + btn.dataset.amount;
+  }
+})();
+</script>
+{% endblock %}

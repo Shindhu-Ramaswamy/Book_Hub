@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Register — BookHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body class="landing-body">
+  <div class="auth-card">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+      <div class="sidebar-logo" style="width:48px;height:48px;font-size:22px;flex-shrink:0;">{% include '_book_stack_icon.html' %}</div>
+      <div><h2>Create account</h2><p class="auth-sub" style="margin:2px 0 0;">Join as a library member</p></div>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for c,m in messages %}<div class="alert alert-{{ c }}">{{ m }}</div>{% endfor %}{% endif %}{% endwith %}
+    <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Full name</label><input type="text" name="name" required placeholder="Your full name" autofocus></div>
+      <div class="form-group"><label>Email</label><input type="email" name="email" required placeholder="your@email.com"></div>
+      <div class="form-group"><label>Phone</label><input type="tel" name="phone" required placeholder="10-digit mobile number"></div>
+      <div class="form-group"><label>Password</label><input type="password" name="password" required placeholder="Create a strong password"></div>
+
+      <div class="form-group">
+        <label>Membership</label>
+        <div id="tier-cards" class="tier-cards">
+          <label class="tier-card" data-tier="basic">
+            <input type="radio" name="membership_type" value="basic" checked>
+            <span class="tc-name">{{ basic_rules.label }}</span>
+            <span class="tc-price">Free to join</span>
+            <span class="tc-detail">{{ basic_rules.max_books }} books · {{ basic_rules.borrow_days }}-day borrow · ₹{{ basic_rules.renewal_fee|int }}/year renewal</span>
+          </label>
+          <label class="tier-card" data-tier="membership">
+            <input type="radio" name="membership_type" value="membership">
+            <span class="tc-name">{{ membership_rules.label }}</span>
+            <span class="tc-price">₹{{ membership_rules.upgrade_fee|int }} to join</span>
+            <span class="tc-detail">{{ membership_rules.max_books }} books · {{ membership_rules.borrow_days }}-day borrow · ₹{{ membership_rules.renewal_fee|int }}/year renewal</span>
+          </label>
+        </div>
+        <p style="color:var(--text3);font-size:0.75rem;margin-top:4px;">
+          You can switch to Membership later from your account if you start on Basic.
+        </p>
+      </div>
+
+      <button type="submit" class="btn btn-user btn-block" style="margin-top:4px;">Create account</button>
+    </form>
+    <p class="auth-switch">Already a member? <a href="{{ url_for('auth.login_user_page') }}">Sign in</a></p>
+    <p class="auth-switch"><a href="{{ url_for('auth.landing') }}">← Back to home</a></p>
+  </div>
+  <script>
+  (function () {
+    var cards = document.querySelectorAll('#tier-cards .tier-card');
+    function setActive(tier) {
+      cards.forEach(function (c) { c.classList.toggle('active', c.dataset.tier === tier); });
+    }
+    cards.forEach(function (c) {
+      var input = c.querySelector('input');
+      input.addEventListener('change', function () { setActive(c.dataset.tier); });
+    });
+    setActive('basic');
+  })();
+  </script>
+</body>
+</html>

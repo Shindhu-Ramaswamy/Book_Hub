@@ -1,0 +1,37 @@
+{% extends 'base_librarian.html' %}
+{% block page_title %}Log Damage{% endblock %}
+{% block content %}
+<div style="max-width:540px;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;box-shadow:var(--shadow-sm);">
+    {% if book %}
+      <p style="margin-bottom:16px;color:var(--text2);">Reporting damage for: <strong style="color:var(--text);">{{ book.title }}</strong></p>
+      <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group"><label>Quantity damaged</label><input type="number" name="quantity" min="1" max="{{ book.total_quantity }}" value="1" required></div>
+        <div class="form-group"><label>Notes</label><input type="text" name="notes" placeholder="Describe the damage…"></div>
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button type="submit" class="btn btn-warning">Report damage</button>
+          <a href="{{ url_for('librarian.book_list') }}" class="btn">Cancel</a>
+        </div>
+      </form>
+    {% else %}
+      <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+          <label>Book</label>
+          <select name="book_id" required>
+            <option value="" disabled selected>Select a book</option>
+            {% for b in books %}<option value="{{ b.id }}">{{ b.title }} ({{ b.isbn }})</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group"><label>Quantity damaged</label><input type="number" name="quantity" min="1" value="1" required></div>
+        <div class="form-group"><label>Notes</label><input type="text" name="notes" placeholder="Describe the damage…"></div>
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button type="submit" class="btn btn-warning">Report damage</button>
+          <a href="{{ url_for('librarian.damaged') }}" class="btn">Cancel</a>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

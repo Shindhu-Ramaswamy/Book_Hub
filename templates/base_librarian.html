@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>BookHub — {{ title }}</title>
+  <script>(function(){try{if(localStorage.getItem('lms_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body>
+<div class="topbar">
+  <button class="mobile-toggle" id="mobile-toggle" onclick="toggleSidebar()" aria-label="Menu"><i class="ti ti-menu-2"></i></button>
+  <div class="topbar-brand">
+    <div class="topbar-brand-icon">{% include '_book_stack_icon.html' %}</div>
+    <span class="topbar-brand-name">BookHub</span>
+  </div>
+  <span class="topbar-title">{% block page_title %}{% endblock %}</span>
+  <div class="topbar-actions">
+  <button type="button" class="topbar-icon icon-plain icon-badge-wrap" onclick="openNotificationsModal(this, '{{ url_for('librarian.notifications') }}')" aria-label="Notifications">
+    <i class="ti ti-bell"></i>
+    {% if unread_notif_count > 0 %}
+    <span class="notif-badge icon-count-badge">
+      {{ unread_notif_count if unread_notif_count < 100 else '99+' }}
+    </span>
+    {% endif %}
+  </button>
+  <button type="button" class="topbar-icon icon-plain theme-toggle-btn" onclick="toggleTheme()" aria-label="Switch to dark mode">
+    <i class="ti ti-moon theme-toggle-icon"></i>
+  </button>
+  </div>
+</div>
+<div class="app-shell">
+
+  <nav class="sidebar" id="sidebar">
+    <button type="button" class="sidebar-toggle-icon" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i class="ti ti-layout-sidebar-left-collapse"></i></button>
+    <a href="{{ url_for('librarian.home') }}"        class="nav-item {% if request.endpoint=='librarian.home' %}active-lib{% endif %}" aria-label="Home"><i class="ti ti-home"></i><span class="nav-label">Home</span></a>
+    <a href="{{ url_for('librarian.book_list') }}"   class="nav-item {% if request.endpoint in ('librarian.book_list','librarian.add_book','librarian.edit_book') %}active-lib{% endif %}" aria-label="Books"><i class="ti ti-books"></i><span class="nav-label">Book List</span></a>
+    <a href="{{ url_for('librarian.search_ol') }}"   class="nav-item {% if request.endpoint in ('librarian.search_ol','librarian.import_ol') %}active-lib{% endif %}" aria-label="Import books"><i class="ti ti-cloud-download"></i><span class="nav-label">Import From OL</span></a>
+    <a href="{{ url_for('librarian.requests') }}"    class="nav-item {% if request.endpoint=='librarian.requests' %}active-lib{% endif %}" aria-label="Requests"><i class="ti ti-clipboard-list"></i><span class="nav-label">Requests</span></a>
+    <a href="{{ url_for('librarian.reservations') }}" class="nav-item {% if request.endpoint in ('librarian.reservations','librarian.fulfil_reservation') %}active-lib{% endif %}" aria-label="Reservations"><i class="ti ti-clock"></i><span class="nav-label">Reservations</span></a>
+    <a href="{{ url_for('librarian.deliveries') }}" class="nav-item {% if request.endpoint in ('librarian.deliveries','librarian.delivery_detail','librarian.accept_delivery','librarian.reject_delivery','librarian.cancel_delivery','librarian.assign_delivery_agent','librarian.pack_delivery','librarian.ship_delivery','librarian.out_for_delivery','librarian.deliver_delivery','librarian.mark_delivery_fee_paid','librarian.create_delivery_payment_order_lib','librarian.verify_delivery_payment_lib') %}active-lib{% endif %}" aria-label="Deliveries"><i class="ti ti-truck-delivery"></i><span class="nav-label">Deliveries</span></a>
+    <a href="{{ url_for('librarian.delivery_agents') }}" class="nav-item {% if request.endpoint in ('librarian.delivery_agents','librarian.add_delivery_agent','librarian.edit_delivery_agent','librarian.toggle_delivery_agent') %}active-lib{% endif %}" aria-label="Delivery agents"><i class="ti ti-user-check"></i><span class="nav-label">Delivery Agents</span></a>
+    <a href="{{ url_for('librarian.pickups') }}" class="nav-item {% if request.endpoint in ('librarian.pickups','librarian.pickup_detail','librarian.accept_pickup','librarian.reject_pickup','librarian.cancel_pickup','librarian.assign_pickup_agent','librarian.out_for_pickup','librarian.picked_up','librarian.mark_pickup_fee_paid','librarian.create_pickup_payment_order_lib','librarian.verify_pickup_payment_lib') %}active-lib{% endif %}" aria-label="Return Pickups"><i class="ti ti-package-export"></i><span class="nav-label">Return Pickups</span></a>
+    <a href="{{ url_for('librarian.issued_books') }}" class="nav-item {% if request.endpoint=='librarian.issued_books' %}active-lib{% endif %}" aria-label="Transactions"><i class="ti ti-arrows-exchange"></i><span class="nav-label">Transactions</span></a>
+    <a href="{{ url_for('librarian.overdue') }}"     class="nav-item {% if request.endpoint=='librarian.overdue' %}active-lib{% endif %}" aria-label="Fines"><i class="ti ti-alert-triangle"></i><span class="nav-label">Overdue &amp; Fines</span></a>
+    <a href="{{ url_for('librarian.membership_payments') }}" class="nav-item {% if request.endpoint in ('librarian.membership_payments','librarian.mark_membership_paid') %}active-lib{% endif %}" aria-label="Membership payments"><i class="ti ti-id-badge-2"></i><span class="nav-label">Membership Payments</span></a>
+    <a href="{{ url_for('librarian.users_list') }}"  class="nav-item {% if request.endpoint=='librarian.users_list' %}active-lib{% endif %}" aria-label="Users"><i class="ti ti-users"></i><span class="nav-label">Users List</span></a>
+    <a href="{{ url_for('librarian.history') }}"     class="nav-item {% if request.endpoint=='librarian.history' %}active-lib{% endif %}" aria-label="History"><i class="ti ti-history"></i><span class="nav-label">History</span></a>
+    <a href="{{ url_for('librarian.damaged') }}"     class="nav-item {% if request.endpoint in ('librarian.damaged','librarian.add_damaged','librarian.add_damaged_for') %}active-lib{% endif %}" aria-label="Damaged &amp; lost"><i class="ti ti-tool"></i><span class="nav-label">Damaged &amp; Lost</span></a>
+    <div class="nav-spacer"></div>
+
+    <div class="sidebar-profile" id="profile-menu-wrap">
+      <button type="button" class="sidebar-profile-btn" onclick="toggleProfileMenu(event)" aria-label="Profile menu">
+        <div class="user-avatar lib-av">{{ current_user.name[:2].upper() }}</div>
+        <div class="sidebar-profile-info">
+          <span class="sidebar-profile-name">{{ current_user.name }}</span>
+          <span class="sidebar-profile-role">Librarian</span>
+        </div>
+        <i class="ti ti-chevron-up sidebar-profile-chevron"></i>
+      </button>
+      <div class="profile-dropdown" id="profile-dropdown">
+        <button type="button" class="profile-dropdown-item" onclick="openProfilePanel(event)">
+          <i class="ti ti-user-circle"></i> Profile settings
+        </button>
+        <div class="profile-dropdown-divider"></div>
+        <a href="{{ url_for('auth.logout') }}" class="profile-dropdown-item danger">
+          <i class="ti ti-logout"></i> Logout
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-area">
+    <div class="page-body">
+      <div class="toast-stack">
+      {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
+      </div>
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+
+<div class="profile-overlay" id="profile-overlay" onclick="closeProfileOutside(event)">
+  <div class="profile-panel">
+    <button class="profile-close" onclick="closeProfile()"><i class="ti ti-x"></i></button>
+    <div class="profile-av-circle lib">{{ current_user.name[:2].upper() }}</div>
+    <div class="profile-name">{{ current_user.name }}</div>
+    <div class="profile-id">{{ current_user.formatted_id }} · Librarian</div>
+    <hr class="profile-divider">
+    <form method="POST" action="{{ url_for('librarian.profile') }}" onsubmit="submitProfileForm(event, this)">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Full name</label><input type="text" name="name" value="{{ current_user.name }}" required></div>
+      <div class="form-group"><label>Email</label><input type="email" name="email" value="{{ current_user.email }}" required></div>
+      <div class="form-group"><label>Phone</label><input type="tel" name="phone" value="{{ current_user.phone }}" required></div>
+      <div class="form-group"><label>Library code</label><input type="text" value="{{ current_user.library_code }}" disabled></div>
+      <div class="form-group"><label>Joined</label><input type="text" value="{{ current_user.joined_date }}" disabled></div>
+      <button type="submit" class="btn btn-librarian btn-block">Save changes</button>
+    </form>
+  </div>
+</div>
+
+<div class="form-modal-overlay" id="form-modal-overlay" onclick="closeFormModalOutside(event)">
+  <div class="form-modal-box" id="form-modal-box"></div>
+</div>
+
+<div class="confirm-modal-overlay" id="confirm-modal-overlay">
+  <div class="confirm-modal-box">
+    <i class="ti ti-alert-triangle confirm-icon"></i>
+    <p id="confirm-modal-message">Are you sure?</p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="btn btn-danger" id="confirm-modal-yes-btn" onclick="confirmModalYes()">Yes, delete</button>
+      <button type="button" class="btn" onclick="closeConfirmModal()">No, cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

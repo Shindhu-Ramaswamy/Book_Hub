@@ -1,0 +1,79 @@
+{% if notifs %}
+<div style="display:flex;flex-direction:column;gap:8px;">
+  {% for n in notifs %}
+  {% set was_unread = n.id in unread_ids %}
+
+  {# ── Colour map for left border ── #}
+  {% set border_colours = {
+    'green': '#15803D',
+    'red':   '#B91C1C',
+    'amber': '#B45309',
+    'blue':  '#1D4ED8',
+    'teal':  '#0F766E',
+  } %}
+  {% set border_col = border_colours.get(n.colour, '#1D4ED8') %}
+
+  <div style="
+    background:var(--bg2);
+    border:1.5px solid {{ border_col if was_unread else 'var(--border)' }};
+    border-left:4px solid {{ border_col }};
+    border-radius:var(--radius-lg);
+    padding:14px 16px;
+    display:flex;
+    align-items:flex-start;
+    gap:14px;
+    box-shadow:var(--shadow-sm);
+    opacity:{{ '1' if was_unread else '0.65' }};
+    transition:opacity 0.2s;
+  ">
+
+    {# Icon bubble #}
+    {% set bg_colours = {
+      'green': '#DCFCE7',
+      'red':   '#FEE2E2',
+      'amber': '#FEF3C7',
+      'blue':  '#DBEAFE',
+      'teal':  '#CCFBF1',
+    } %}
+    {% set icon_colours = {
+      'green': '#15803D',
+      'red':   '#B91C1C',
+      'amber': '#B45309',
+      'blue':  '#1D4ED8',
+      'teal':  '#0F766E',
+    } %}
+    <div style="
+      width:40px;height:40px;border-radius:10px;flex-shrink:0;
+      background:{{ bg_colours.get(n.colour, '#DBEAFE') }};
+      display:flex;align-items:center;justify-content:center;
+    ">
+      <i class="ti {{ n.icon }}" style="font-size:20px;color:{{ icon_colours.get(n.colour, '#1D4ED8') }};"></i>
+    </div>
+
+    {# Content #}
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+        <span style="font-size:0.9375rem;font-weight:{{ '700' if was_unread else '500' }};color:var(--text);">
+          {{ n.title }}
+        </span>
+        {% if was_unread %}
+        <span style="width:7px;height:7px;background:{{ border_col }};border-radius:50%;flex-shrink:0;"></span>
+        {% endif %}
+      </div>
+      <p style="font-size:0.875rem;color:var(--text2);margin-bottom:6px;line-height:1.5;">
+        {{ n.body }}
+      </p>
+      <span style="font-size:0.75rem;color:var(--text3);">{{ n.time_ago }}</span>
+    </div>
+
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-state">
+  <i class="ti ti-bell-off"></i>
+  <p>No notifications yet.</p>
+  <p style="font-size:0.875rem;">You'll be notified here for every action — borrows, fines, reservations, and due-date reminders.</p>
+</div>
+{% endif %}

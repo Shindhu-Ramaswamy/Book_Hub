@@ -1,0 +1,57 @@
+<button type="button" onclick="closeFormModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;line-height:1;"><i class="ti ti-x"></i></button>
+
+<div style="display:flex;gap:18px;margin-bottom:16px;">
+  <div style="width:110px;flex-shrink:0;border-radius:var(--radius);overflow:hidden;background:var(--bg3);">
+    {% set cover = book.cover_url %}
+    {% if cover %}
+      <img src="{{ cover }}" alt="{{ book.title }}" style="width:100%;aspect-ratio:4/5;object-fit:cover;display:block;" onerror="this.style.display='none'">
+    {% else %}
+      <div style="width:100%;aspect-ratio:4/5;display:flex;align-items:center;justify-content:center;">
+        <i class="ti ti-book" style="font-size:30px;color:var(--brand);"></i>
+      </div>
+    {% endif %}
+  </div>
+  <div style="min-width:0;">
+    <div style="font-size:1.0625rem;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:4px;">{{ book.title }}</div>
+    <div style="font-size:0.875rem;color:var(--text3);margin-bottom:8px;">{{ ol.author or book.author }}</div>
+    <span class="badge badge-info">{{ book.genre }}</span>
+    {% if book.available_quantity > 0 %}
+      <span class="badge badge-success" style="margin-left:4px;">{{ book.available_quantity }} available</span>
+    {% else %}
+      <span class="badge badge-danger" style="margin-left:4px;">Unavailable</span>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Metadata grid — only shows fields Open Library actually returned ── #}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:16px;font-size:0.8125rem;">
+  <div><span style="color:var(--text3);">ISBN</span><br><span style="color:var(--text);font-weight:500;">{{ book.isbn }}</span></div>
+  {% if ol.publisher %}
+  <div><span style="color:var(--text3);">Publisher</span><br><span style="color:var(--text);font-weight:500;">{{ ol.publisher }}</span></div>
+  {% endif %}
+  {% if ol.publish_year %}
+  <div><span style="color:var(--text3);">Publication year</span><br><span style="color:var(--text);font-weight:500;">{{ ol.publish_year }}</span></div>
+  {% endif %}
+  {% if ol.publish_date %}
+  <div><span style="color:var(--text3);">Publish date</span><br><span style="color:var(--text);font-weight:500;">{{ ol.publish_date }}</span></div>
+  {% endif %}
+  {% if ol.num_pages %}
+  <div><span style="color:var(--text3);">Pages</span><br><span style="color:var(--text);font-weight:500;">{{ ol.num_pages }}</span></div>
+  {% endif %}
+  {% if ol.language %}
+  <div><span style="color:var(--text3);">Language</span><br><span style="color:var(--text);font-weight:500;">{{ ol.language }}</span></div>
+  {% endif %}
+</div>
+
+<p class="section-label" style="margin-top:0;">About this book</p>
+{% if ol.description %}
+<p style="font-size:0.875rem;color:var(--text2);line-height:1.6;margin-bottom:14px;">{{ ol.description }}</p>
+{% else %}
+<p style="font-size:0.875rem;color:var(--text3);font-style:italic;margin-bottom:14px;">No description available for this book yet.</p>
+{% endif %}
+
+{% if ol.subjects %}
+<div style="display:flex;flex-wrap:wrap;gap:6px;">
+  {% for s in ol.subjects %}<span class="badge badge-gray" style="font-size:0.72rem;">{{ s }}</span>{% endfor %}
+</div>
+{% endif %}
