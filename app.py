@@ -247,6 +247,7 @@ def _grandfather_memberships(User):
     print(f'[LibraryMS] Grandfathered {len(legacy_users)} existing member(s) as paid Basic.')
 
 
+app = create_app()
+
 if __name__ == '__main__':
-    app = create_app()
     app.run(debug=True)

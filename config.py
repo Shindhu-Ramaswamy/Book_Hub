@@ -3,15 +3,22 @@ from datetime import timedelta
 
 class Config:
     # ── Core ──────────────────────────────────────────────────
-    SECRET_KEY = os.environ.get('c0e06fa8ef79281eb4562e8dfc62bb0d5ef65a4da353c26391ff65a4433dd53c') or 'library-secret-key-2024'
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'library-secret-key-2024'
     BASE_DIR   = os.path.abspath(os.path.dirname(__file__))
 
     # ── Database ───────────────────────────────────────────────
-    SQLALCHEMY_DATABASE_URI     = 'sqlite:///' + os.path.join(BASE_DIR, 'library.db')
+    # Render (and Heroku) inject DATABASE_URL for their managed Postgres
+    # add-on, but hand it out as 'postgres://' — SQLAlchemy 1.4+/psycopg2
+    # only accept the 'postgresql://' scheme, so rewrite it. Falls back to
+    # the local SQLite file when DATABASE_URL isn't set (local dev).
+    _database_url = os.environ.get('DATABASE_URL')
+    if _database_url and _database_url.startswith('postgres://'):
+        _database_url = _database_url.replace('postgres://', 'postgresql://', 1)
+    SQLALCHEMY_DATABASE_URI = _database_url or ('sqlite:///' + os.path.join(BASE_DIR, 'library.db'))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # ── JWT ────────────────────────────────────────────────────
-    JWT_SECRET_KEY              = os.environ.get('aa0c04e4d77c507b91ba4f2f32c203348c9076970fb239263f617d28e1effc5b') or 'jwt-library-secret-2024'
+    JWT_SECRET_KEY              = os.environ.get('JWT_SECRET_KEY') or 'jwt-library-secret-2024'
     JWT_ACCESS_TOKEN_EXPIRES    = timedelta(hours=1)
     JWT_REFRESH_TOKEN_EXPIRES   = timedelta(days=30)
     JWT_TOKEN_LOCATION          = ['headers']
